@@ -1,4 +1,4 @@
-# ebb-backend
+# Ebb
 
 
 
@@ -15,14 +15,14 @@ Already a pro? Just edit this README.md and make it your own. Want to make it ea
 
 ```
 cd existing_repo
-git remote add origin https://gitlab.uicgroup.tech/ebb/ebb-backend.git
+git remote add origin https://gitlab.uicgroup.tech/j.boltaboyev/ebb.git
 git branch -M master
 git push -uf origin master
 ```
 
 ## Integrate with your tools
 
-- [ ] [Set up project integrations](https://gitlab.uicgroup.tech/ebb/ebb-backend/-/settings/integrations)
+- [ ] [Set up project integrations](https://gitlab.uicgroup.tech/j.boltaboyev/ebb/-/settings/integrations)
 
 ## Collaborate with your team
 

@@ -2,7 +2,7 @@ from rest_framework.test import APITestCase
 from rest_framework import status
 from django.contrib.auth import get_user_model
 
-from core.models import UploadedImage
+from apps.accounts.models import Media
 
 User = get_user_model()
 
@@ -50,7 +50,7 @@ class AccountViewTestCase(APITestCase):
     def setUp(self):
         self.user = User.objects.create_user(phone='+1234567890', password='testpassword', full_name='Test User', birth_date='1990-01-01')
         self.client.force_authenticate(user=self.user)
-        self.avatar = UploadedImage.objects.create(image='testimage.jpg')
+        self.avatar = Media.objects.create(image='testimage.jpg')
 
         self.url = '/api/v1/account/me/'
 

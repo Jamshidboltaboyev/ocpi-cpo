@@ -13,20 +13,19 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from .cache import CacheTypes
-from .helpers import send_single_sms
-from .models import User, Otp, UserLoginDevice
+from .cache import OTPTypes
+from .helpers import send_single_sms # noqa
+from .models import User, Otp, UserLoginDevice, Media
 from .serializers import (ActivateSerializer, CheckPhoneSerializer,
-                                  DeletedProfileSerializer,
-                                  DeleteImageSerializer, LogoutSerializer,
-                                  SendSmsCodeSerializer,
-                                  UploadedImageSerializer, UserSerializer, ForgotPasswordSerializer)
-from core.models import UploadedImage
-from utils.user_auth import AuthService
+                          DeletedProfileSerializer, DeleteImageSerializer, LogoutSerializer,
+                          SendSmsCodeSerializer, UploadedImageSerializer, UserSerializer,
+                          ForgotPasswordSerializer)
+
+from apps.accounts.utils.user_auth import AuthService
 
 
 class UploadedImageCreateView(generics.CreateAPIView):
-    queryset = UploadedImage.objects.all()
+    queryset = Media.objects.all()
     serializer_class = UploadedImageSerializer
     parser_classes = (MultiPartParser,)
 
@@ -51,7 +50,7 @@ class DeleteImageView(generics.GenericAPIView):
         if user.avatar_id == avatar_id:
             user.avatar = None
             user.save()
-            image = UploadedImage.objects.get(pk=avatar_id)
+            image = Media.objects.get(pk=avatar_id)
             image.delete()
 
             return Response({"status": "image o'chirildi"}, status=status.HTTP_200_OK)
@@ -99,7 +98,7 @@ class AccountView(APIView):
                 user.save()
 
             elif avatar_id is not None and avatar_id != 0:
-                if UploadedImage.objects.filter(pk=avatar_id).exists():
+                if Media.objects.filter(pk=avatar_id).exists():
                     birth_date = datetime.strptime(birth_date, "%d.%m.%Y").strftime("%Y-%m-%d")
                     user = self.queryset.get(pk=request.user.id)
                     user.full_name = full_name
@@ -164,7 +163,7 @@ class RegisterView(APIView):
         """
         phone = request.data.get("phone", "")
 
-        if AuthService.is_user_blocked(phone=phone, type=CacheTypes.registration_sms_verification):
+        if AuthService.is_user_blocked(phone=phone, type=OTPTypes.REGISTRATION_SMS_VERIFICATION.value):
             raise serializers.ValidationError("User is blocked", code="blocked_user")
 
         try:
@@ -183,7 +182,7 @@ class RegisterView(APIView):
                 status=status.HTTP_400_BAD_REQUEST)
 
         sms = Otp.objects.filter(recipient=phone,
-                                          add_time__gte=(timezone.now() - datetime.timedelta(minutes=1))).last()
+                                 add_time__gte=(timezone.now() - datetime.timedelta(minutes=1))).last()
         if sms:
             time_to_retry = 60 - int((timezone.now() - sms.add_time).total_seconds())
             return Response({"sec_to_retry": time_to_retry}, status=status.HTTP_200_OK)
@@ -227,7 +226,7 @@ class ActivateView(APIView):
         full_name = request.data.get("full_name", None)
         password = request.data.get("password", None)
 
-        is_blocked = AuthService.is_user_blocked(phone=phone, type=CacheTypes.registration_sms_verification)
+        is_blocked = AuthService.is_user_blocked(phone=phone, type=OTPTypes.REGISTRATION_SMS_VERIFICATION.value)
         if is_blocked:
             raise serializers.ValidationError("User is blocked", code="blocked_user")
 
@@ -305,22 +304,22 @@ class ActivateView(APIView):
                                 device.model_name = model_name
                                 device.login_time = timezone.now()
                                 device.save()
-                        AuthService.reset_login_attempts(phone=phone, type=CacheTypes.registration_sms_verification)
+                        AuthService.reset_login_attempts(phone=phone, type=OTPTypes.REGISTRATION_SMS_VERIFICATION.value)
                         return Response(
                             {"refresh": str(refresh), "access": str(refresh.access_token)}, status=status.HTTP_200_OK
                         )
                     else:
-                        AuthService.check_login_attempts(phone=phone, type=CacheTypes.registration_sms_verification)
+                        AuthService.check_login_attempts(phone=phone, type=OTPTypes.REGISTRATION_SMS_VERIFICATION.value)
                         return Response({"status": "error", "message": "Kod xato"}, status=status.HTTP_400_BAD_REQUEST)
                 else:
-                    AuthService.check_login_attempts(phone=phone, type=CacheTypes.registration_sms_verification)
+                    AuthService.check_login_attempts(phone=phone, type=OTPTypes.REGISTRATION_SMS_VERIFICATION.value)
                     return Response(
                         {"status": "error", "message": "Bu raqam tizimda mavjud emas"},
                         status=status.HTTP_400_BAD_REQUEST,
                     )
 
         else:
-            AuthService.check_login_attempts(phone=phone, type=CacheTypes.registration_sms_verification)
+            AuthService.check_login_attempts(phone=phone, type=OTPTypes.REGISTRATION_SMS_VERIFICATION.value)
             return Response({"status": "error"}, status=status.HTTP_400_BAD_REQUEST)
 
 

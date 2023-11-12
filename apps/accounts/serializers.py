@@ -48,6 +48,7 @@ class CheckPhoneSerializer(serializers.Serializer):
 
 class SignUpSerializer(serializers.Serializer):
     phone = serializers.CharField(required=True)
+    phone_model_name = serializers.CharField(required=True)
     imei_code = serializers.CharField(required=True)
     session = serializers.CharField(required=True)
     full_name = serializers.CharField(required=True)

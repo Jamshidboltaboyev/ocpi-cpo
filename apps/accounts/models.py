@@ -182,7 +182,7 @@ class UserLoginDevice(models.Model):
     )
     model_name = models.CharField(_("Қурилма номи"), max_length=50, null=True, blank=True)
     imei_code = models.CharField(_("IMEI"), max_length=50, null=True, blank=True)
-    login_time = models.DateTimeField(_("Тизимга кирган санаси"), null=True, blank=True)
+    login_time = models.DateTimeField(_("Тизимга кирган санаси"),auto_now_add=True)
     logged_out = models.BooleanField(default=False, blank=True)
     logout_time = models.DateTimeField(_("Тизимдан чиқиш санаси"), null=True, blank=True)
 

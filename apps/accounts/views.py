@@ -205,118 +205,49 @@ class RegisterView(APIView):
         return Response({"sec_to_retry": 60}, status=status.HTTP_200_OK)
 
 
-class ActivateView(APIView):
+class SignUpAPIView(generics.CreateAPIView):
     permission_classes = (AllowAny,)
     serializer_class = SignUpSerializer
 
     @swagger_auto_schema(request_body=SignUpSerializer)
     def post(self, request):
-        """
-        # check sms code
-        """
-        phone = request.data.get("phone", None)
-        register = request.data.get("register", None)
-        change_phone = request.data.get("change_phone", None)
-        imei_code = request.data.get("imei_code", None)
-        model_name = request.data.get("model_name", None)
-        full_name = request.data.get("full_name", None)
-        password = request.data.get("password", None)
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        validated_data = serializer.validated_data
 
-        is_blocked = AuthService.is_user_blocked(phone=phone, type=OTPTypes.REGISTRATION_SMS_VERIFICATION.value)
-        if is_blocked:
-            raise serializers.ValidationError("User is blocked", code="blocked_user")
+        phone = validated_data.get('phone')
+        session = validated_data.get('session')
+        imei_code = validated_data.get("imei_code", None)
+        phone_model_name = validated_data.get("phone_model_name", None)
+        full_name = validated_data.get("full_name", None)
+        password = validated_data.get("password", None)
 
-        if phone:
-            if register:
-                if User.objects.filter(phone=phone).exists():
-                    return Response(
-                        {"status": "error", "message": "Бу номер тизимда мавжуд"}, status=status.HTTP_400_BAD_REQUEST
-                    )
-                else:
-                    if OTP.check_code(phone, request.data["code"]):
-                        with transaction.atomic():
-                            user = User()
-                            user.phone = phone
-                            user.full_name = full_name
-                            user.set_password(password)
-                            user.save()
+        otp = OTP.objects.filter(
+            sms_type=OTP.Types.R_S_V, created_at__gte=(timezone.now() - timedelta(minutes=10)),
+            session=session, is_code_verified=True, is_used=False, phone_number=phone
+        ).order_by("-created_at").first()
 
-                            device = UserLoginDevice()
-                            device.user = user
-                            device.imei_code = imei_code
-                            device.model_name = model_name
-                            device.login_time = timezone.now()
-                            device.save()
+        if not otp:
+            raise serializers.ValidationError(detail="Invalid Session", code="invalid_session")
 
-                            refresh = RefreshToken.for_user(user)
-                            return Response(
-                                {
-                                    "status": "success",
-                                    "message": "Мувофаққиятли рўйхатдан ўтилди",
-                                    "refresh": str(refresh),
-                                    "access": str(refresh.access_token),
-                                },
-                                status=status.HTTP_200_OK,
-                            )
-                    else:
-                        return Response({"status": "error", "message": "Kod xato"}, status=status.HTTP_400_BAD_REQUEST)
-            elif change_phone:
-                if OTP.check_code(phone, request.data["code"]):
-                    with transaction.atomic():
-                        user = User.objects.get(pk=request.user.id)
-                        user.phone = phone
-                        user.save()
+        otp.is_used = True
+        otp.save()
 
-                        refresh = RefreshToken.for_user(user)
-                        return Response(
-                            {
-                                "status": "success",
-                                "message": "Телефон рақам мувофаққиятли ўзгартирилди",
-                                "refresh": str(refresh),
-                                "access": str(refresh.access_token),
-                            },
-                            status=status.HTTP_200_OK,
-                        )
-                else:
-                    return Response({"status": "error", "message": "Kod xato"}, status=status.HTTP_400_BAD_REQUEST)
-            else:
-                if User.objects.filter(phone=phone).exists():
-                    if OTP.check_code(phone, request.data["code"]):
-                        user = User.objects.get(phone=phone)
-                        user.last_login = timezone.now()
-                        user.save()
-                        refresh = RefreshToken.for_user(user)
-                        if imei_code:
-                            if UserLoginDevice.objects.filter(
-                                    user=user, imei_code=imei_code, logged_out=False
-                            ).exists():
-                                device = UserLoginDevice.objects.get(user=user, imei_code=imei_code, logged_out=False)
-                                device.login_time = timezone.now()
-                                device.save()
-                            else:
-                                device = UserLoginDevice()
-                                device.user = user
-                                device.imei_code = imei_code
-                                device.model_name = model_name
-                                device.login_time = timezone.now()
-                                device.save()
-                        AuthService.reset_login_attempts(phone=phone, type=OTPTypes.REGISTRATION_SMS_VERIFICATION.value)
-                        return Response(
-                            {"refresh": str(refresh), "access": str(refresh.access_token)}, status=status.HTTP_200_OK
-                        )
-                    else:
-                        AuthService.check_login_attempts(phone=phone, type=OTPTypes.REGISTRATION_SMS_VERIFICATION.value)
-                        return Response({"status": "error", "message": "Kod xato"}, status=status.HTTP_400_BAD_REQUEST)
-                else:
-                    AuthService.check_login_attempts(phone=phone, type=OTPTypes.REGISTRATION_SMS_VERIFICATION.value)
-                    return Response(
-                        {"status": "error", "message": "Bu raqam tizimda mavjud emas"},
-                        status=status.HTTP_400_BAD_REQUEST,
-                    )
+        with transaction.atomic():
+            user = User.objects.create_user(phone=phone, password=password, full_name=full_name)
 
-        else:
-            AuthService.check_login_attempts(phone=phone, type=OTPTypes.REGISTRATION_SMS_VERIFICATION.value)
-            return Response({"status": "error"}, status=status.HTTP_400_BAD_REQUEST)
+            UserLoginDevice.objects.create(user=user, imei_code=imei_code, model_name=phone_model_name)
+
+            refresh = RefreshToken.for_user(user)
+        return Response(
+            {
+                "status": "success",
+                "message": "Мувофаққиятли рўйхатдан ўтилди",
+                "refresh": str(refresh),
+                "access": str(refresh.access_token),
+            },
+            status=status.HTTP_200_OK,
+        )
 
 
 class CheckPhoneView(generics.CreateAPIView):
@@ -462,17 +393,10 @@ class ResetPasswordAPIView(APIView):
         session = serializer.validated_data["session"]
         password = serializer.validated_data["password"]
 
-        otp = (
-            OTP.objects.filter(
-                sms_type=OTP.Types.F_P_V,
-                add_time__gte=(timezone.now() - timedelta(minutes=10)),
-                session=session,
-                is_code_verified=True,
-                is_used=False,
-            )
-            .order_by("-created_at")
-            .first()
-        )
+        otp = OTP.objects.filter(
+            sms_type=OTP.Types.R_S_V, created_at__gte=(timezone.now() - timedelta(minutes=10)),
+            session=session, is_code_verified=True, is_used=False
+        ).order_by("-created_at").first()
 
         if not otp:
             raise serializers.ValidationError(detail="Invalid Session", code="invalid_session")
@@ -486,4 +410,3 @@ class ResetPasswordAPIView(APIView):
         user.save()
 
         return Response({"status": "success"}, status=status.HTTP_200_OK)
-

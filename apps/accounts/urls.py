@@ -10,7 +10,7 @@ auth_urlpatterns = [
     path("refresh-token/", TokenRefreshView.as_view(), name="token_refresh"),
 
     path("check-phone/", views.CheckPhoneView.as_view(), name="check-phone-number"),
-    path("forgot-password/", views.ForgotPasswrdAPIView.as_view()),
+    path("reset-password/", views.ResetPasswordAPIView.as_view(), name="reset-password"),
     path("logout/", views.LogOutFromDeviceView.as_view(), name="user-logout-device"),
     path("register/", views.RegisterView.as_view(), name="accounts_register"),
     path("activate/", views.ActivateView.as_view(), name="activate"),

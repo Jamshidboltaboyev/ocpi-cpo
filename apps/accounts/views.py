@@ -22,7 +22,7 @@ from .serializers import (
     SignUpSerializer, CheckPhoneSerializer,
     DeletedProfileSerializer, DeleteImageSerializer, LogoutSerializer,
     SendSmsCodeSerializer, UploadedImageSerializer, UserSerializer,
-    ForgotPasswordSerializer, VerifySMSCodeSerializer
+    ForgotPasswordSerializer, VerifySMSCodeSerializer, ResetPasswordSerializer
 )
 from apps.accounts.utils.user_auth import AuthService
 
@@ -450,18 +450,40 @@ class DeleteProfileApiView(generics.DestroyAPIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-class ForgotPasswrdAPIView(generics.CreateAPIView):
-    serializer_class = ForgotPasswordSerializer
-    queryset = OTP.objects.all()
+class ResetPasswordAPIView(APIView):
+    serializer_class = ResetPasswordSerializer
+    permission_classes = (AllowAny,)
 
+    @swagger_auto_schema(request_body=serializer_class)
     def post(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
+        serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        code = get_random_string(5, string.digits)
-        session = get_random_string(10, string.printable)
-        text = f"Tasqidlash kodi: {code}"
-        sm = OTP.create_message(
-            serializer.validated_data['phone'], text, code, request.META["REMOTE_ADDR"], session)
-        # todo send_single_sms(sm)
-        return Response(data={"session": sm.session})
+        session = serializer.validated_data["session"]
+        password = serializer.validated_data["password"]
+
+        otp = (
+            OTP.objects.filter(
+                sms_type=OTP.Types.F_P_V,
+                add_time__gte=(timezone.now() - timedelta(minutes=10)),
+                session=session,
+                is_code_verified=True,
+                is_used=False,
+            )
+            .order_by("-created_at")
+            .first()
+        )
+
+        if not otp:
+            raise serializers.ValidationError(detail="Invalid Session", code="invalid_session")
+
+        otp.is_used = True
+        otp.save()
+
+        # change user password
+        user = User.objects.get(phone=otp.phone_number)
+        user.set_password(password)
+        user.save()
+
+        return Response({"status": "success"}, status=status.HTTP_200_OK)
+

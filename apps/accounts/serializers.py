@@ -178,3 +178,8 @@ class VerifySMSCodeSerializer(serializers.Serializer):
         if not phone.is_valid():
             raise serializers.ValidationError(code='invalid_phone', detail='Нотўғри номер')
         return phone
+
+
+class ResetPasswordSerializer(serializers.Serializer):
+    password = serializers.CharField(required=True)
+    session = serializers.CharField(required=True)

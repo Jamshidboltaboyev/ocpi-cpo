@@ -1,33 +1,9 @@
-import datetime
 from datetime import timedelta
 
-import requests
 from celery import shared_task
 from django.utils import timezone
 
 from apps.accounts.models import User, UserGift
-
-
-def send_single_sms(smid):
-    from apps.accounts.models import OTP
-
-    # try:
-    #     message = OTP.objects.get(pk=smid)
-    #     sms = {
-    #         "messages": {
-    #             "recipient": message.recipient,
-    #             "message-id": message.message_id,
-    #             "sms": {"originator": "3700", "content": {"text": message.text}},
-    #         }
-    #     }
-    #     response = requests.post(SEND_URL, json=sms, auth=(LOGIN, PASSWORD))
-    #     if response.text == "Request is received":
-    #         message.sent = True
-    #         message.sent_time = datetime.datetime.now()
-    #         message.save()
-    # except Exception as e:
-    #     print(e)
-    #
 
 
 @shared_task
@@ -38,7 +14,7 @@ def create_user_gifts():
     for user in users_with_birthdate:
         UserGift.objects.create(user=user, expired_date=today + timedelta(days=3))
         user.balance += 50000
-        user.save()
+        user.save(update_fields=['balance'])
 
 
 @shared_task

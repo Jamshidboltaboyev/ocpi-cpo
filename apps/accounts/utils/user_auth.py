@@ -2,7 +2,7 @@ import sys
 
 from rest_framework.exceptions import ValidationError
 
-from utils.redis import RedisClient
+from apps.accounts.utils.redis import RedisClient
 
 
 class AuthService:
@@ -39,7 +39,7 @@ class AuthService:
                     cls.redis_client.set(key, attempts)
 
     @classmethod
-    def is_user_blocked(cls, phone, type):
+    def is_user_blocked(cls, phone: str, otp_type: str):
         return cls.redis_client.get(f"blocked_user:{phone}:{type}") is not None
 
     @classmethod

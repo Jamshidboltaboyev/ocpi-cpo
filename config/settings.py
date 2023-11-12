@@ -15,7 +15,7 @@ SECRET_KEY = env.str("SECRET_KEY")
 
 DEBUG = env.bool("DEBUG")
 
-ALLOWED_HOSTS = ["127.0.0.1", 'localhost', "ebb.uicgroup.tech"]
+ALLOWED_HOSTS = ['*']
 
 CSRF_TRUSTED_ORIGINS = ["https://ebb.uicgroup.tech", "https://ebb.uicgroup.tech"]
 
@@ -30,7 +30,8 @@ INSTALLED_APPS = [
                      "apps.vehicle",
                      "apps.accounts",
                      "apps.payment",
-                     "apps.charge_point"
+                     "apps.charge_point",
+                     "apps.core"
                  ] + [
                      "jazzmin",
                      "modeltranslation",

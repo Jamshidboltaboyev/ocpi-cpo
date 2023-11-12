@@ -1,3 +1,7 @@
 from django.contrib import admin
+from .models import QrCodeScanerCount
 
-# Register your models here.
+
+@admin.register(QrCodeScanerCount)
+class QrCodeScanerCountAdmin(admin.ModelAdmin):
+    list_display = ('count', 'iphone', 'android', 'last_scan')

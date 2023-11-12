@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 import string
 import phonenumbers
 from django.db import transaction
@@ -12,16 +12,24 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.views import TokenObtainPairView
 
 from .cache import OTPTypes
-from .helpers import send_single_sms # noqa
-from .models import User, Otp, UserLoginDevice, Media
-from .serializers import (ActivateSerializer, CheckPhoneSerializer,
-                          DeletedProfileSerializer, DeleteImageSerializer, LogoutSerializer,
-                          SendSmsCodeSerializer, UploadedImageSerializer, UserSerializer,
-                          ForgotPasswordSerializer)
-
+from .helpers import send_single_sms  # noqa
+from .models import User, OTP, UserLoginDevice
+from apps.core.models import Media
+from .serializers import (
+    SignUpSerializer, CheckPhoneSerializer,
+    DeletedProfileSerializer, DeleteImageSerializer, LogoutSerializer,
+    SendSmsCodeSerializer, UploadedImageSerializer, UserSerializer,
+    ForgotPasswordSerializer
+)
 from apps.accounts.utils.user_auth import AuthService
+
+
+class LoginAPIView(TokenObtainPairView):
+    def post(self, request, *args, **kwargs):
+        return super().post(request, *args, **kwargs)
 
 
 class UploadedImageCreateView(generics.CreateAPIView):
@@ -64,7 +72,7 @@ class AccountView(APIView):
     allowed_method = ["GET", "POST"]
     permission_classes = (IsAuthenticated,)
 
-    @swagger_auto_schema(tags=["Account"], operation_summary="Get Current User")
+    @swagger_auto_schema(operation_summary="Get Current User")
     def get(self, request):
         serializer = UserSerializer(request.user, read_only=True)
         return Response({"status": "success", "data": serializer.data}, status=status.HTTP_200_OK)
@@ -131,7 +139,7 @@ class AccountView(APIView):
                             session = get_random_string(10, string.printable)
 
                             text = "UIC Tasdiqlash kodi {}".format(code)
-                            sm = Otp.create_message(
+                            sm = OTP.create_message(
                                 request.data["phone"], text, user, code, request.META["REMOTE_ADDR"], session
                             )
                             # todo send_single_sms(sm)
@@ -145,7 +153,7 @@ class AccountView(APIView):
 
 
 class RegisterView(APIView):
-    queryset = Otp.objects.all()
+    queryset = OTP.objects.all()
     permission_classes = (AllowAny,)
     serializer_class = CheckPhoneSerializer
 
@@ -181,7 +189,7 @@ class RegisterView(APIView):
                 {"status": "error", "message": "Бу рақам тизимда мавжуд"},
                 status=status.HTTP_400_BAD_REQUEST)
 
-        sms = Otp.objects.filter(recipient=phone,
+        sms = OTP.objects.filter(recipient=phone,
                                  add_time__gte=(timezone.now() - datetime.timedelta(minutes=1))).last()
         if sms:
             time_to_retry = 60 - int((timezone.now() - sms.add_time).total_seconds())
@@ -192,28 +200,16 @@ class RegisterView(APIView):
 
         text = "UIC Tasdiqlash kodi {}".format(code)
 
-        sm = Otp.create_message(phone, text, user, code, request.META.get("REMOTE_ADDR"), session)
+        sm = OTP.create_message(phone, text, user, code, request.META.get("REMOTE_ADDR"), session)
         # todo send_single_sms(sm)
         return Response({"sec_to_retry": 60}, status=status.HTTP_200_OK)
 
 
 class ActivateView(APIView):
     permission_classes = (AllowAny,)
-    serializer_class = ActivateSerializer
+    serializer_class = SignUpSerializer
 
-    @swagger_auto_schema(
-        request_body=openapi.Schema(
-            type=openapi.TYPE_OBJECT,
-            properties={
-                "phone": openapi.Schema(type=openapi.TYPE_STRING, description="String with +"),
-                "register": openapi.Schema(type=openapi.TYPE_BOOLEAN, description="when registering True"),
-                "imei_code": openapi.Schema(type=openapi.TYPE_STRING, description="user mobile phone imei code"),
-                "code": openapi.Schema(type=openapi.TYPE_STRING, description="sms code"),
-                "full_name": openapi.Schema(type=openapi.TYPE_STRING, description="full name"),
-                "password": openapi.Schema(type=openapi.TYPE_STRING, description="password"),
-            },
-        )
-    )
+    @swagger_auto_schema(request_body=SignUpSerializer)
     def post(self, request):
         """
         # check sms code
@@ -237,7 +233,7 @@ class ActivateView(APIView):
                         {"status": "error", "message": "Бу номер тизимда мавжуд"}, status=status.HTTP_400_BAD_REQUEST
                     )
                 else:
-                    if Otp.check_code(phone, request.data["code"]):
+                    if OTP.check_code(phone, request.data["code"]):
                         with transaction.atomic():
                             user = User()
                             user.phone = phone
@@ -265,7 +261,7 @@ class ActivateView(APIView):
                     else:
                         return Response({"status": "error", "message": "Kod xato"}, status=status.HTTP_400_BAD_REQUEST)
             elif change_phone:
-                if Otp.check_code(phone, request.data["code"]):
+                if OTP.check_code(phone, request.data["code"]):
                     with transaction.atomic():
                         user = User.objects.get(pk=request.user.id)
                         user.phone = phone
@@ -285,7 +281,7 @@ class ActivateView(APIView):
                     return Response({"status": "error", "message": "Kod xato"}, status=status.HTTP_400_BAD_REQUEST)
             else:
                 if User.objects.filter(phone=phone).exists():
-                    if Otp.check_code(phone, request.data["code"]):
+                    if OTP.check_code(phone, request.data["code"]):
                         user = User.objects.get(phone=phone)
                         user.last_login = timezone.now()
                         user.save()
@@ -361,9 +357,11 @@ class LogOutFromDeviceView(APIView):
         return Response({"status": True}, status=status.HTTP_200_OK)
 
 
-class SendSmsCodeView(generics.CreateAPIView):
+
+
+class SendSmsCodeAPIView(APIView):
     """
-    Send SMS code to the user
+    Send sms code to user
 
     types options:
     1. `forget_pass_verification`
@@ -374,37 +372,55 @@ class SendSmsCodeView(generics.CreateAPIView):
     6. `delete_profile`
     """
 
-    queryset = Otp.objects.all()
+    queryset = OTP.objects.all()
     permission_classes = (AllowAny,)
     serializer_class = SendSmsCodeSerializer
 
     @swagger_auto_schema(request_body=SendSmsCodeSerializer)
     def post(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
+        serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
-        type_ = serializer.validated_data['type']
-        phone = serializer.validated_data['phone']
 
-        if AuthService.is_user_blocked(phone=phone, type_=type_):
+        otp_type = serializer.validated_data.get("otp_type")
+        phone = serializer.validated_data.get("phone")
+        user = None
+
+        if request.user.is_authenticated:
+            phone = request.user.phone
+            user = request.user
+
+        is_blocked = AuthService.is_user_blocked(phone.as_e164, otp_type)
+        if is_blocked:
             raise serializers.ValidationError("User is blocked", code="blocked_user")
 
-        last_sms = Otp.objects.filter(
-            recipient=phone,
-            add_time__gte=(timezone.now() - datetime.timedelta(minutes=1))
-        ).last()
-
-        if last_sms:
-            time_to_retry = 60 - (timezone.now() - last_sms.add_time).total_seconds()
+        # check if user has sent sms in last 1 minute
+        sms = OTP.last_sms_exists_within_interval(phone, otp_type)
+        if sms:
+            # Return how many seconds left to retry, if user has sent sms in last 1 minute
+            time_to_retry = 60 - int((timezone.now() - sms.add_time).total_seconds())
             return Response({"sec_to_retry": time_to_retry}, status=status.HTTP_200_OK)
 
-        code = get_random_string(6, allowed_chars=string.digits)
-        session = get_random_string(10, string.printable)
+        # if no valid sms found, continue to send sms
+        is_phone_valid, err_message = CustomUser.check_sms_verification_number(phone, otp_type)
+        if is_phone_valid is False:
+            return Response({"status": "error", "message": err_message}, status=status.HTTP_400_BAD_REQUEST)
 
-        text = f"UIC Tasdiqlash kodi {code}"
-        user = request.user if request.user.is_authenticated else None
-        sm = Otp.create_message(phone, text, user, code, request.META["REMOTE_ADDR"], session)
-        # todo send_single_sms(sm)
-        return Response({"sec_to_retry": 60}, status=status.HTTP_200_OK)
+        # generate random code and session
+        code = get_random_string(6, allowed_chars="0123456789")
+        session = get_random_string(16)
+
+        # set static code for test users
+        if phone in ["+998901231212", "+998712007007", "+998990376004", "+998996488450"]:
+            code = "081020"
+        # Save sms to database
+        sm = OTP.create_message(
+            phone, user, code, request.META["REMOTE_ADDR"], session=session, sms_type=type_
+        )
+
+        # Send sms to user
+        send_single_sms(sm)
+
+        return Response({"sec_to_retry": 60, "session": session}, status=status.HTTP_200_OK)
 
 
 class DeleteProfileApiView(generics.DestroyAPIView):
@@ -428,7 +444,7 @@ class DeleteProfileApiView(generics.DestroyAPIView):
 
 class ForgotPasswrdAPIView(generics.CreateAPIView):
     serializer_class = ForgotPasswordSerializer
-    queryset = Otp.objects.all()
+    queryset = OTP.objects.all()
 
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -437,7 +453,7 @@ class ForgotPasswrdAPIView(generics.CreateAPIView):
         code = get_random_string(5, string.digits)
         session = get_random_string(10, string.printable)
         text = f"Tasqidlash kodi: {code}"
-        sm = Otp.create_message(
+        sm = OTP.create_message(
             serializer.validated_data['phone'], text, code, request.META["REMOTE_ADDR"], session)
         # todo send_single_sms(sm)
         return Response(data={"session": sm.session})

@@ -17,4 +17,4 @@ def generate_cache_key(cache_type: str, *args):
     return f"{cache_type}{''.join(args)}"
 
 
-types = [_.value for _ in OTPTypes]
+otp_types = [_.value for _ in OTPTypes]

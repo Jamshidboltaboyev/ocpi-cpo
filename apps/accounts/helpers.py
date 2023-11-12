@@ -14,8 +14,3 @@ def send_single_sms(sm):
         sm.sent = True
         sm.sent_time = datetime.datetime.now()
         sm.save()
-
-
-sms = {'messages': {"recipient": "+998996488450", "message-id": 1,
-                    "sms": {"originator": "UIC", "content": {"text": "UIC Tasdiqlash kodi 530569"}}}}
-response = requests.post(SEND_URL, json=sms, auth=(LOGIN, PASSWORD))

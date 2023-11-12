@@ -1,6 +1,6 @@
 import redis
 
-from zty.settings import CELERY_BROKER_URL
+from config.settings import CELERY_BROKER_URL
 
 
 class RedisClient:

@@ -39,36 +39,36 @@ def transaction_report(date):
         send_msg("Bugunlik to'lovlar yo'q")
         return "no transactions"
     transaction_count = transactions.count()  # umumiy transactionlar soni
-    total_amount = transactions.aggregate(total_amount=Sum("total"))["total_amount"]  # umumiy summa
-    payme_amount = transactions.filter(variant=Provider.PAYME).aggregate(total_amount=Sum("total"))[
-        "total_amount"
+    total_balance = transactions.aggregate(total_balance=Sum("total"))["total_balance"]  # umumiy summa
+    payme_balance = transactions.filter(variant=Provider.PAYME).aggregate(total_balance=Sum("total"))[
+        "total_balance"
     ]  # payme summa
     payme_count = transactions.filter(variant=Provider.PAYME).count()  # payme count
-    click_amount = transactions.filter(variant=Provider.CLICK).aggregate(total_amount=Sum("total"))[
-        "total_amount"
+    click_balance = transactions.filter(variant=Provider.CLICK).aggregate(total_balance=Sum("total"))[
+        "total_balance"
     ]  # click summa
     click_count = transactions.filter(variant=Provider.CLICK).count()  # click count
-    paylov_amount = transactions.filter(variant=Provider.PAYLOV).aggregate(total_amount=Sum("total"))[
-        "total_amount"
+    paylov_balance = transactions.filter(variant=Provider.PAYLOV).aggregate(total_balance=Sum("total"))[
+        "total_balance"
     ]  # paylov summa
     paylov_count = transactions.filter(variant=Provider.PAYLOV).count()  # paylov count
-    uzum_bank_amount = transactions.filter(variant=Provider.UZUM_BANK).aggregate(total_amount=Sum("total"))[
-        "total_amount"
+    uzum_bank_balance = transactions.filter(variant=Provider.UZUM_BANK).aggregate(total_balance=Sum("total"))[
+        "total_balance"
     ]  # uzum_bank summa
     uzum_bank_count = transactions.filter(variant=Provider.UZUM_BANK).count()  # uzum_bank count
-    card_amount = transactions.filter(variant=Provider.CARD).aggregate(total_amount=Sum("total"))[
-        "total_amount"
+    card_balance = transactions.filter(variant=Provider.CARD).aggregate(total_balance=Sum("total"))[
+        "total_balance"
     ]  # card summa
     card_count = transactions.filter(variant=Provider.CARD).count()  # card count
 
-    if card_amount is None:
-        card_amount = 0
-    if payme_amount is None:
-        payme_amount = 0
-    if paylov_amount is None:
-        paylov_amount = 0
-    if click_amount is None:
-        click_amount = 0
+    if card_balance is None:
+        card_balance = 0
+    if payme_balance is None:
+        payme_balance = 0
+    if paylov_balance is None:
+        paylov_balance = 0
+    if click_balance is None:
+        click_balance = 0
     if card_amount is None:
         card_amount = 0
 

@@ -2,16 +2,16 @@ from django.core.cache import cache
 from phonenumber_field.serializerfields import PhoneNumberField
 from rest_framework import serializers
 from phonenumber_field.phonenumber import to_python
-from accounts.cache import CacheTypes, types
-from accounts.models import DeletedAccount
-from core.models import UploadedImage
-from utils.user_auth import AuthService
-from .models import User, Otp
+from .cache import OTPTypes, otp_types
+from .models import DeletedAccount
+from apps.core.models import Media
+from apps.accounts.utils.user_auth import AuthService
+from .models import User, OTP
 
 
 class UploadedImageSerializer(serializers.ModelSerializer):
     class Meta:
-        model = UploadedImage
+        model = Media
         fields = ("image",)
 
 
@@ -22,7 +22,7 @@ class DeleteImageSerializer(serializers.Serializer):
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ("id", "full_name", "birth_date", "phone", "amount", "avatar", "image_url", "birth_date_editable")
+        fields = ("id", "full_name", "birth_date", "phone", "balance", "avatar", "image_url", "birth_date_editable")
         read_only_fields = ["id"]
 
     image_url = serializers.SerializerMethodField()
@@ -46,17 +46,26 @@ class CheckPhoneSerializer(serializers.Serializer):
     phone = serializers.CharField(help_text='String with +')
 
 
-class ActivateSerializer(serializers.Serializer):
-    phone = serializers.CharField()
-    register = serializers.CharField(allow_null=True, allow_blank=True)
-    imei_code = serializers.CharField()
-    code = serializers.CharField()
-    full_name = serializers.CharField()
+class SignUpSerializer(serializers.Serializer):
+    phone = serializers.CharField(required=True)
+    imei_code = serializers.CharField(required=True)
+    session = serializers.CharField(required=True)
+    full_name = serializers.CharField(required=True)
     password = serializers.CharField(write_only=True)
 
     def validate(self, attrs):
         if len(attrs.get("password")) < 8:
             raise serializers.ValidationError("Password must be at least 8 characters", code="invalid_password")
+
+    def validate_phone(self, value):
+        if not to_python(value).is_valid():
+            raise serializers.ValidationError(code='invalid_phone', detail='Нотўғри номер')
+        return value
+
+    def validate_password(self, value):
+        if len(value) < 8:
+            raise serializers.ValidationError("Password must be at least 8 characters", code="invalid_password")
+        return value
 
 
 class LogoutSerializer(serializers.Serializer):
@@ -64,12 +73,12 @@ class LogoutSerializer(serializers.Serializer):
 
 
 class SendSmsCodeSerializer(serializers.Serializer):
-    phone = serializers.CharField(help_text='String with +')
-    type = serializers.CharField()
+    phone = serializers.CharField(required=True, help_text='String with +')
+    otp_type = serializers.CharField(required=True)
 
-    def validate_type(self, value):
-        if value not in types:
-            raise serializers.ValidationError("Invalid type", code="invalid_type")
+    def validate_otp_type(self, value):
+        if value not in otp_types:
+            raise serializers.ValidationError("Invalid type", code="invalid_otp_type")
         return value
 
     def validate_phone(self, value):
@@ -95,15 +104,15 @@ class DeletedProfileSerializer(serializers.ModelSerializer):
         fields = ["reason", "code"]
 
     def validate(self, attrs):
-        type_ = CacheTypes.delete_profile
+        type_: str = OTPTypes.DELETE_PROFILE.value
         request = self.context.get("request")
         phone = request.user.phone
 
-        is_blocked = AuthService.is_user_blocked(phone=phone, type_=type_)
+        is_blocked = AuthService.is_user_blocked(phone=phone, type=type_)
         if is_blocked:
             raise serializers.ValidationError("User is blocked", code="blocked_user")
 
-        if not Otp.check_code(phone, request.data["code"], type_=type_):
+        if not OTP.check_code(phone, request.data["code"], type_=type_):
             AuthService.check_login_attempts(phone=phone, type_=type_)
             raise serializers.ValidationError("Code is invalid", code="invalid_code")
         AuthService.reset_login_attempts(phone=phone, type_=type_)

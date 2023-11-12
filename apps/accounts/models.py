@@ -1,9 +1,11 @@
 import datetime
+import string
 from typing import List
 
 from django.contrib.auth.models import AbstractBaseUser
 from django.db import models
 from django.utils import timezone
+from django.utils.crypto import get_random_string
 from django.utils.translation import gettext as _
 from phonenumber_field.modelfields import PhoneNumberField
 from rest_framework.exceptions import ValidationError
@@ -144,12 +146,16 @@ class OTP(models.Model):
         return False
 
     @staticmethod
-    def create_message(phone, message, sender=None, code=None, ip=None, session: str = ""):
+    def create_message(phone, otp_type: str, ip=None):
+        code = get_random_string(6, allowed_chars=string.digits)
         if phone in ['+998901231212', '+998712007007', "+998996488450"]:
             code: str = "081020"
-
+        session = get_random_string(16, allowed_chars=string.printable)
+        text = f"UIC tasdiqlash kodi {code}"
         sms = OTP.objects.create(
-            sender=sender, recipient=phone, text=message, code=code, ip=ip, session=session)
+            phone_number=phone, text=text, code=code,
+            session=session, ip_address=ip, sms_type=otp_type
+        )
         return sms
 
     @staticmethod

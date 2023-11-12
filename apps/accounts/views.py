@@ -357,8 +357,6 @@ class LogOutFromDeviceView(APIView):
         return Response({"status": True}, status=status.HTTP_200_OK)
 
 
-
-
 class SendSmsCodeAPIView(APIView):
     """
     Send sms code to user
@@ -383,44 +381,17 @@ class SendSmsCodeAPIView(APIView):
 
         otp_type = serializer.validated_data.get("otp_type")
         phone = serializer.validated_data.get("phone")
-        user = None
 
-        if request.user.is_authenticated:
-            phone = request.user.phone
-            user = request.user
-
-        is_blocked = AuthService.is_user_blocked(phone.as_e164, otp_type)
-        if is_blocked:
-            raise serializers.ValidationError("User is blocked", code="blocked_user")
-
-        # check if user has sent sms in last 1 minute
-        sms = OTP.last_sms_exists_within_interval(phone, otp_type)
-        if sms:
-            # Return how many seconds left to retry, if user has sent sms in last 1 minute
-            time_to_retry = 60 - int((timezone.now() - sms.add_time).total_seconds())
+        otp = OTP.last_sms_exists_within_interval(phone, otp_type)
+        if otp:
+            time_to_retry = 60 - int((timezone.now() - otp.created_at).total_seconds())
             return Response({"sec_to_retry": time_to_retry}, status=status.HTTP_200_OK)
 
-        # if no valid sms found, continue to send sms
-        is_phone_valid, err_message = CustomUser.check_sms_verification_number(phone, otp_type)
-        if is_phone_valid is False:
-            return Response({"status": "error", "message": err_message}, status=status.HTTP_400_BAD_REQUEST)
+        otp = OTP.create_message(phone=phone, otp_type=otp_type, ip=request.META["REMOTE_ADDR"])
 
-        # generate random code and session
-        code = get_random_string(6, allowed_chars="0123456789")
-        session = get_random_string(16)
+        send_single_sms(otp)
 
-        # set static code for test users
-        if phone in ["+998901231212", "+998712007007", "+998990376004", "+998996488450"]:
-            code = "081020"
-        # Save sms to database
-        sm = OTP.create_message(
-            phone, user, code, request.META["REMOTE_ADDR"], session=session, sms_type=type_
-        )
-
-        # Send sms to user
-        send_single_sms(sm)
-
-        return Response({"sec_to_retry": 60, "session": session}, status=status.HTTP_200_OK)
+        return Response({"sec_to_retry": 60, "session": otp.session}, status=status.HTTP_200_OK)
 
 
 class DeleteProfileApiView(generics.DestroyAPIView):

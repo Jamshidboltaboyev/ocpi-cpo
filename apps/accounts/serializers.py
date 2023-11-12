@@ -88,10 +88,35 @@ class SendSmsCodeSerializer(serializers.Serializer):
 
     def validate(self, attrs):
         phone = attrs.get("phone")
-        type_ = attrs.get("type")
-        cache_keys = cache.keys(f"{type_}{str(phone)}*")
-        if cache_keys:
-            raise serializers.ValidationError("Code already sent", code="code_already_sent")
+        otp_type = attrs.get("otp_type")
+
+        for_phone_availability = [
+            OTPTypes.REGISTRATION_SMS_VERIFICATION,
+            OTPTypes.UPDATE_PHONE_VERIFICATION,
+        ]
+        for_phone_existence = [
+            OTPTypes.LOGIN_SMS_VERIFICATION,
+            OTPTypes.FORGET_PASS_VERIFICATION,
+            OTPTypes.CHANGE_PASSWORD,
+            OTPTypes.DELETE_PROFILE,
+        ]
+
+        qs = User.objects.filter(phone=phone, is_deleted=False)
+
+        if otp_type in for_phone_availability:
+            if qs.exists():
+                raise serializers.ValidationError(
+                    code='phone_exists', detail="User already exists with this phone number"
+                )
+        elif otp_type in for_phone_existence:
+            if not qs.exists():
+                return False, serializers.ValidationError(
+                    code="phone_not_found", detail="User not found with this phone number"
+                )
+
+        if AuthService.is_user_blocked(phone, otp_type):
+            raise serializers.ValidationError("User is blocked", code="blocked_user")
+
         return attrs
 
 

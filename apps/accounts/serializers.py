@@ -160,3 +160,21 @@ class ForgotPasswordSerializer(serializers.Serializer):
         if not User.objects.filter(phone=value).exists():
             raise serializers.ValidationError(detail="Phone doesn't exists")
         return value
+
+
+class VerifySMSCodeSerializer(serializers.Serializer):
+    phone = serializers.CharField(required=True)
+    code = serializers.CharField(required=True)
+    session = serializers.CharField(required=True)
+    otp_type = serializers.CharField(required=True)
+
+    def validate_otp_type(self, value):
+        if value not in otp_types:
+            raise serializers.ValidationError("Invalid type", code="invalid_type")
+        return value
+
+    def validate_phone(self, value):
+        phone = to_python(value)
+        if not phone.is_valid():
+            raise serializers.ValidationError(code='invalid_phone', detail='Нотўғри номер')
+        return phone

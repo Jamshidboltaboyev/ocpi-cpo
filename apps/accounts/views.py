@@ -22,7 +22,7 @@ from .serializers import (
     SignUpSerializer, CheckPhoneSerializer,
     DeletedProfileSerializer, DeleteImageSerializer, LogoutSerializer,
     SendSmsCodeSerializer, UploadedImageSerializer, UserSerializer,
-    ForgotPasswordSerializer
+    ForgotPasswordSerializer, VerifySMSCodeSerializer
 )
 from apps.accounts.utils.user_auth import AuthService
 
@@ -392,6 +392,43 @@ class SendSmsCodeAPIView(APIView):
         send_single_sms(otp)
 
         return Response({"sec_to_retry": 60, "session": otp.session}, status=status.HTTP_200_OK)
+
+
+class VerifySMSCodeAPIView(APIView):
+    """
+    Verify sms code to user
+
+    types options:
+    1. `forget_pass_verification`
+    2. `registration_sms_verification`
+    3. `login_sms_verification`
+    4. `update_phone_verification`
+    5. `change_password`
+    6. `delete_profile`
+    """
+
+    serializer_class = VerifySMSCodeSerializer
+    permission_classes = (AllowAny,)
+
+    @swagger_auto_schema(request_body=serializer_class)
+    def post(self, request, *args, **kwargs):
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        session = serializer.validated_data["session"]
+        code = serializer.validated_data["code"]
+        otp_type = serializer.validated_data["otp_type"]
+        phone = serializer.validated_data["phone"]
+
+        is_blocked = AuthService.is_user_blocked(phone=phone.as_e164, otp_type=otp_type)
+        if is_blocked:
+            raise serializers.ValidationError("User is blocked", code="blocked_user")
+
+        OTP.check_code(phone, code, otp_type, session)
+
+        AuthService.reset_login_attempts(phone=phone.as_e164, type=otp_type)
+
+        return Response({"status": "success"}, status=status.HTTP_200_OK)
 
 
 class DeleteProfileApiView(generics.DestroyAPIView):

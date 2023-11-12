@@ -104,28 +104,36 @@ class OTP(models.Model):
         super(OTP, self).save(*args, **kwargs)
 
     @staticmethod
-    def check_code(phone, code, sender=None, type_: str = OTPTypes.REGISTRATION_SMS_VERIFICATION):
+    def check_code(phone, code, otp_type, session=None):
         if code is None or phone is None:
-            AuthService.check_login_attempts(phone=phone, type=type_)
+            AuthService.check_login_attempts(phone=phone, type=otp_type)
             raise ValidationError("invalid_code")
 
         code = code.strip()
 
         query = OTP.objects.filter(
-            recipient=phone, add_time__gte=(timezone.now() - datetime.timedelta(minutes=1))
+            phone_number=phone,
+            created_at__gte=(timezone.now() - datetime.timedelta(minutes=1)),
+            sms_type=otp_type,
+            is_code_verified=False,
+            is_used=False,
         )
-
-        if sender:
-            query = query.filter(sender=sender)
 
         last_sms = query.order_by("add_time").last()
         if not last_sms:
-            AuthService.check_login_attempts(phone=phone, type=type_)
+            AuthService.check_login_attempts(phone=phone, type=otp_type)
             raise ValidationError("invalid_code")
 
         if last_sms.code != code:
-            AuthService.check_login_attempts(phone=phone, type=type_)
+            AuthService.check_login_attempts(phone=phone, type=otp_type)
             raise ValidationError("invalid_code")
+
+        if session and last_sms.session != session:
+            AuthService.check_login_attempts(phone=phone, type=otp_type)
+            raise ValidationError("session_expired")
+
+        last_sms.is_code_verified = True
+        last_sms.save()
 
         return True
 

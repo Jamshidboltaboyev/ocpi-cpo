@@ -2,7 +2,6 @@ from django.db import models
 from django.utils.translation import gettext as _
 
 from apps.accounts.models import User
-from apps.charge_point.models import Connector, InProgressTransaction
 from apps.core.models import Media
 
 OPERATION = (

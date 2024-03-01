@@ -39,9 +39,9 @@ admin.site.register(User, UserAdmin)
 admin.site.register(UserLoginDevice)
 
 
-@admin.register(OTP)
-class OtpAdmin(admin.ModelAdmin):
-    list_display = ('recipient', 'message_id', 'code', 'sent_time')
+# @admin.register(OTP)
+# class OtpAdmin(admin.ModelAdmin):
+#     list_display = ('recipient', 'message_id', 'code', 'sent_time')
 
 
 

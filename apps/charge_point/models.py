@@ -1,134 +1,173 @@
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext as _
-
+from apps.core.models import TimeStampedModel
 from apps.accounts.models import User
 
 
-class Country(models.Model):
-    name = models.CharField(_("Наименование"), max_length=30)
+class Country(TimeStampedModel):
+    ico_code = models.CharField(max_length=10, verbose_name=_("ISO code"))
+    name = models.CharField(max_length=30, verbose_name=_(_("Name")))
 
     def __str__(self):
         return self.name
 
     class Meta:
-        verbose_name = _("Страна")
-        verbose_name_plural = _("Страны")
+        ordering = ['-name']
+        verbose_name = _("Country")
+        verbose_name_plural = _("Countries")
 
 
-class Region(models.Model):
-    name = models.CharField(_("Наименование"), max_length=25)
-    country = models.ForeignKey(Country, verbose_name=_("Страна"), related_name="regions", on_delete=models.PROTECT)
-
-    def __str__(self):
-        return self.name
-
-    class Meta:
-        verbose_name = _("Регион")
-        verbose_name_plural = _("Регионы")
-
-
-class Address(models.Model):
-    region = models.ForeignKey(Region, verbose_name=_("Регион"), related_name="address", on_delete=models.PROTECT)
-    name = models.CharField(_("Наименование"), max_length=50)
-    address = models.CharField(_("Адрес"), max_length=100)
-    landmark = models.CharField(_("Ориентир"), max_length=100, null=True)
-    longitude = models.DecimalField(_("Длина"), max_digits=9, decimal_places=6, null=True, blank=True)
-    latitude = models.DecimalField(_("Широта"), max_digits=9, decimal_places=6, null=True, blank=True)
+class Region(TimeStampedModel):
+    name = models.CharField(_("Name"), max_length=255)
+    country = models.ForeignKey(Country, verbose_name=_("Country"), on_delete=models.PROTECT)
 
     def __str__(self):
         return self.name
 
     class Meta:
-        verbose_name = _("Адрес")
-        verbose_name_plural = _("Адреса")
+        ordering = ['-name']
+        verbose_name = _("Region")
+        verbose_name_plural = _("Region")
 
 
-class PowerUnit(models.Model):
-    name = models.CharField(_("Наименование"), max_length=10)
+class District(TimeStampedModel):
+    name = models.CharField(_("Name"), max_length=25)
+    country = models.ForeignKey(to=Region, verbose_name=_("Region"), on_delete=models.PROTECT)
+
+
+class PublishTokenType(TimeStampedModel):
+    class WhitelistType(models.TextChoices):
+        ALWAYS = "ALWAYS"
+        ALLOWED = "ALLOWED"
+        ALLOWED_OFFLINE = "ALLOWED_OFFLINE"
+        NEVER = "NEVER"
+
+    uid = models.CharField(max_length=36, verbose_name=_("Uid"), null=True, blank=True)
+    type = models.CharField(max_length=50, choices=WhitelistType.choices, verbose_name=_("White List Type"))
+
+
+class Location(TimeStampedModel):
+    class ParkingType(models.TextChoices):
+        UNDERGROUND_GARAGE = 'UNDERGROUND_GARAGE'
+        ON_STREET = 'ON_STREET'
+        ON_DRIVEWAY = 'ON_DRIVEWAY'
+        PARKING_LOT = 'PARKING_LOT'
+        PARKING_GARAGE = 'PARKING_GARAGE'
+        ALONG_MOTORWAY = 'ALONG_MOTORWAY'
+
+    district = models.ForeignKey(to=District, on_delete=models.PROTECT, verbose_name=_("District"))
+    name = models.CharField(max_length=50, verbose_name=_("Name"))
+    address = models.CharField(max_length=100, verbose_name=_("Address"))
+    landmark = models.CharField(max_length=100, null=True, verbose_name=_("Landmark"))
+    longitude = models.DecimalField(max_digits=9, decimal_places=6, verbose_name=_("Longitude"))
+    latitude = models.DecimalField(max_digits=9, decimal_places=6, verbose_name=_("Latitude"))
+    parking_type = models.CharField(max_length=50, choices=ParkingType.choices, verbose_name=_("Parking Type"))
+    publish = models.BooleanField(default=True, verbose_name=_("Allowed to all MSPs"))
+    publish_allowed_to = models.ManyToManyField(to=PublishTokenType, blank=True, verbose_name=_("Allowed MSPs Tokens"))
 
     def __str__(self):
         return self.name
 
     class Meta:
-        verbose_name = _("Единица измерения")
-        verbose_name_plural = _("Единица измерении")
+        ordering = ['-name']
+        verbose_name = _("Location")
+        verbose_name_plural = _("Locations")
 
 
-class PowerGroup(models.Model):
-    count = models.FloatField(_("Количество"))
-    unit = models.ForeignKey(PowerUnit, verbose_name=_("Ед.изм"), related_name="power_group", on_delete=models.PROTECT)
+class ChargePoint(TimeStampedModel):
+    class Status(models.TextChoices):
+        AVAILABLE = 'AVAILABLE'
+        BLOCKED = "BLOCKED"
+        CHARGING = 'CHARGING'
+        INOPERATIV = 'INOPERATIVE'
+        OUTOFORDER = "OUTOFORDER"
+        PLANNED = "PLANNED"
+        REMOVED = "REMOVED"
+        RESERVED = "RESERVED"
+        UNKNOWN = "UNKNOWN"
 
-    def __str__(self):
-        return str(self.count) + self.unit.name
-
-    class Meta:
-        verbose_name = _("Группа мощность")
-        verbose_name_plural = _("Группы мощносты")
-
-
-class ConnectorType(models.Model):
-    class Type(models.TextChoices):
-        AC = 'AC'
-        DC = 'DC'
-
-    name = models.CharField(_("Наименование"), max_length=40)
-    count_amper = models.CharField(_("Количество тока"), max_length=50, null=True)
-    count_phase = models.CharField(_("Количество фаза"), max_length=50, null=True)
-    type = models.CharField(max_length=10, choices=Type.choices)
-
-    def __str__(self):
-        return self.name
-
-    class Meta:
-        verbose_name = _("Тип соединения")
-        verbose_name_plural = _("Типы соединения")
-
-
-class ChargePoint(models.Model):
-    name = models.CharField(_("Названия"), max_length=128)
-    model = models.CharField(_("Модель"), max_length=128)
-    vendor = models.CharField(_("Производитель"), max_length=128)
-    serial_number = models.CharField(_("Серия"), max_length=25, null=True, blank=True)
-    firmware = models.CharField(_("Прошивка"), max_length=50, null=True, blank=True)
-    type = models.CharField(_("Тип"), max_length=25, null=True, blank=True)
-    last_heartbeat = models.DateTimeField(_("Последняя подключения"), null=True, blank=True)
-    boot_timestamp = models.DateTimeField(_("Время загрузки"), null=True, blank=True)
-    identity = models.CharField(_("Идентификация"), max_length=50)
-    connected = models.BooleanField(_("Подключен"), default=False)
-    status = models.BooleanField(_("Активный"), default=False)
-    address = models.ForeignKey(Address, verbose_name=_("Адрес"), on_delete=models.PROTECT)
+    location = models.ForeignKey(to=Location, on_delete=models.PROTECT, verbose_name=_("Location"))
+    identity = models.CharField(max_length=50, verbose_name=_("Identity"))
+    boot_timestamp = models.DateTimeField(verbose_name=_("Boot timestamp"), null=True, blank=True)
+    model = models.CharField(max_length=128, verbose_name=_("Charge point model"), null=True, blank=True)
+    vendor = models.CharField(max_length=128, verbose_name=_("Charge point vendor"), null=True, blank=True)
+    serial_number = models.CharField(max_length=25, verbose_name=_("Charge point serial number"), null=True, blank=True)
+    firmware = models.CharField(max_length=50, verbose_name=_("Firmware Version"), null=True, blank=True)
+    last_heartbeat = models.DateTimeField(verbose_name="Last Heartbeat", null=True, blank=True)
+    is_connected = models.BooleanField(default=False, verbose_name=_("is Connected"))
     is_active = models.BooleanField(default=True)
+    status = models.CharField(max_length=50, choices=Status.choices)
+
+    name = models.CharField(max_length=128, verbose_name=_("Name"))
 
     def __str__(self):
         return f"{self.name} - {self.identity}"
 
     class Meta:
-        verbose_name = _("Станция")
-        verbose_name_plural = _("Станции")
-        ordering = ["id"]
+        verbose_name = _("ChargePoint")
+        verbose_name_plural = _("ChargePoints")
+        ordering = ["-id"]
 
 
-class Price(models.Model):
-    PRICE_TYPES = (
-        (1, _("Sum/kWh")),
-        (2, _("Sum/hour")),
-        (2, _("Locking/min")),
-    )
-    price_type = models.IntegerField(_("Тип"), choices=PRICE_TYPES, default=1)
-    price = models.IntegerField(_("Цена"))
-    start_date = models.DateTimeField(_("Время начало"), null=True, blank=True)
-    end_date = models.DateTimeField(_("Время окончания"), null=True, blank=True)
-
-    def __str__(self):
-        return str(self.price)
-
-    class Meta:
-        verbose_name = _("Цена")
-        verbose_name_plural = _("Цены")
+class ConnectorType(TimeStampedModel):
+    pass
 
 
-class Connector(models.Model):
+class Connector(TimeStampedModel):
+    class ConnectorType(models.TextChoices):
+        CHADEMO = 'CHADEMO'
+        CHAOJI = 'CHAOJI'
+        DOMESTIC_A = 'DOMESTIC_A'
+        DOMESTIC_B = 'DOMESTIC_B'
+        DOMESTIC_C = 'DOMESTIC_C'
+        DOMESTIC_D = 'DOMESTIC_D'
+        DOMESTIC_E = 'DOMESTIC_E'
+        DOMESTIC_F = 'DOMESTIC_F'
+        DOMESTIC_G = 'DOMESTIC_G'
+        DOMESTIC_H = 'DOMESTIC_H'
+        DOMESTIC_I = 'DOMESTIC_I'
+        DOMESTIC_J = 'DOMESTIC_J'
+        DOMESTIC_K = 'DOMESTIC_K'
+        DOMESTIC_L = 'DOMESTIC_L'
+        DOMESTIC_M = 'DOMESTIC_M'
+        DOMESTIC_N = 'DOMESTIC_N'
+        DOMESTIC_O = 'DOMESTIC_O'
+        GBT_AC = 'GBT_AC'
+        GBT_DC = 'GBT_DC'
+        IEC_60309_2_SINGLE_16 = 'IEC_60309_2_single_16'
+        IEC_60309_2_THREE_16 = 'IEC_60309_2_three_16'
+        IEC_60309_2_THREE_32 = 'IEC_60309_2_three_32'
+        IEC_60309_2_THREE_64 = 'IEC_60309_2_three_64'
+        IEC_62196_T1 = 'IEC_62196_T1'
+        IEC_62196_T1_COMBO = 'IEC_62196_T1_COMBO'
+        IEC_62196_T2 = 'IEC_62196_T2'
+        IEC_62196_T2_COMBO = 'IEC_62196_T2_COMBO'
+        IEC_62196_T3A = 'IEC_62196_T3A'
+        IEC_62196_T3C = 'IEC_62196_T3C'
+        NEMA_5_20 = 'NEMA_5_20'
+        NEMA_6_30 = 'NEMA_6_30'
+        NEMA_6_50 = 'NEMA_6_50'
+        NEMA_10_30 = 'NEMA_10_30'
+        NEMA_10_50 = 'NEMA_10_50'
+        NEMA_14_30 = 'NEMA_14_30'
+        NEMA_14_50 = 'NEMA_14_50'
+        PANTOGRAPH_BOTTOM_UP = 'PANTOGRAPH_BOTTOM_UP'
+        PANTOGRAPH_TOP_DOWN = 'PANTOGRAPH_TOP_DOWN'
+        TESLA_R = 'TESLA_R'
+        TESLA_S = 'TESLA_S'
+
+    class ConnectorFormat(models.TextChoices):
+        SOCKET = 'SOCKET'
+        CABLE = 'CABLE'
+
+    class PowerType(models.TextChoices):
+        AC_1_PHASE = 'AC_1_PHASE'  # 'AC single phase.'
+        AC_2_PHASE = 'AC_2_PHASE'  # 'AC two phases, only two of the three available phases connected.'
+        AC_2_PHASE_SPLIT = 'AC_2_PHASE_SPLIT'  # '3 AC two phases using split phase system.'
+        AC_3_PHASE = 'AC_3_PHASE'  # 'AC three phases.'
+        DC = 'DC'  # 'Direct Current.'
+
     class Status(models.TextChoices):
         AVAILABLE = "Available"
         PREPARING = "Preparing"
@@ -140,25 +179,22 @@ class Connector(models.Model):
         UNAVAILABLE = "Unavailable"
         FAULTED = "Faulted"
 
+    charge_point = models.ForeignKey(ChargePoint, on_delete=models.PROTECT)
     name = models.CharField(_("Наименование"), max_length=40, null=True)
-    connector_id = models.IntegerField(_("№ коннектора"))
-    charge_point = models.ForeignKey(ChargePoint, on_delete=models.PROTECT, related_name="connectors")
-    available = models.BooleanField(_("Доступен?"), default=False)
-    in_use = models.BooleanField(_("Занят?"), default=False)
-    status = models.CharField(_("Статус"), choices=Status.choices, max_length=50, default=Status.UNAVAILABLE)
-    power = models.ForeignKey(PowerGroup, verbose_name=_("Группы мощность"), on_delete=models.PROTECT)
-    connector_type = models.ForeignKey(ConnectorType, verbose_name=_("Тип соединения"), on_delete=models.PROTECT)
-    icon = models.TextField(_("Значок"), null=True)
 
-    price_for_charge = models.ForeignKey(
-        Price, verbose_name=_("Цена зарядки"), on_delete=models.PROTECT, related_name="for_change"
-    )
-    price_for_wait = models.ForeignKey(
-        Price, verbose_name=_("Цена ожидания"), on_delete=models.PROTECT, related_name="for_wait"
-    )
-    price_for_parking = models.ForeignKey(
-        Price, verbose_name=_("Цена парковки"), on_delete=models.PROTECT, related_name="for_parking"
-    )
+    connector_id = models.IntegerField(verbose_name=_("Connector Id within EVS"))
+    standard = models.CharField(max_length=50, choices=ConnectorType.choices, verbose_name=_("Connector's standard"))
+    format = models.CharField(max_length=50, choices=ConnectorFormat.choices, verbose_name=_("Connector's format"))
+    power_type = models.CharField(max_length=50, choices=PowerType.choices, verbose_name=_("Connector's power type"))
+    max_voltage = models.IntegerField(default=0, verbose_name=_("Connector's Max Voltage"))
+    max_amperage = models.IntegerField(default=0, verbose_name=_("Connector's Max Amperage"))
+    max_electric_power = models.IntegerField(default=0, verbose_name=_("Connector's Max electric power"))
+
+    status = models.CharField(_("Статус"), choices=Status.choices, max_length=50, default=Status.UNAVAILABLE)
+
+    price_for_charge = models.DecimalField(max_digits=10, decimal_places=2)
+    price_for_wait = models.DecimalField(max_digits=10, decimal_places=2)
+    price_for_parking = models.DecimalField(max_digits=10, decimal_places=2)
 
     class Meta:
         unique_together = ("charge_point_id", "connector_id")
@@ -170,7 +206,7 @@ class Connector(models.Model):
         return f"{self.charge_point}: № {self.connector_id}"
 
 
-class ChargePointError(models.Model):
+class ChargePointError(TimeStampedModel):
     connector_id = models.ForeignKey(
         Connector, verbose_name=_("Коннектор"), on_delete=models.PROTECT, related_name="errors"
     )
@@ -182,16 +218,16 @@ class ChargePointError(models.Model):
     vendor_error_code = models.CharField(_("Код ошибки вендора"), max_length=50, null=True, blank=True)
 
 
-class TokenGroup(models.Model):  # todo ask
+class TokenGroup(TimeStampedModel):  # todo ask
     token = models.CharField(_("Token"), max_length=20)
 
 
-class Token(models.Model):  # todo ask
+class Token(TimeStampedModel):  # todo ask
     token = models.CharField(_("Token"), max_length=20)
     token_group = models.ForeignKey(TokenGroup, related_name="tokens", on_delete=models.PROTECT)
 
 
-class ChargeTransaction(models.Model):
+class ChargeTransaction(TimeStampedModel):
     user = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name="charge_transactions", null=True, blank=True
     )
@@ -222,7 +258,7 @@ class ChargeTransaction(models.Model):
         return str(self.pk)
 
 
-class InProgressTransaction(models.Model):
+class InProgressTransaction(TimeStampedModel):
     user = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name="in_progress_transactions", null=True, blank=True
     )
@@ -249,7 +285,7 @@ class InProgressTransaction(models.Model):
         verbose_name_plural = _("Не законченные транзакции")
 
 
-class AuthorizationRequest(models.Model):
+class AuthorizationRequest(TimeStampedModel):
     charge_point = models.ForeignKey(ChargePoint, verbose_name=_("Станция"), on_delete=models.PROTECT)
     token = models.ForeignKey(Token, on_delete=models.PROTECT)
     timestamp = models.DateTimeField(_("Время"))
@@ -259,7 +295,7 @@ class AuthorizationRequest(models.Model):
         verbose_name_plural = _("Запросы на авторизация")
 
 
-class PriceChargePointConnector(models.Model):
+class PriceChargePointConnector(TimeStampedModel):
     PRICE_TYPES = (
         (1, _("Sum/kWh")),
         (2, _("Sum/hour")),
@@ -279,7 +315,7 @@ class PriceChargePointConnector(models.Model):
         verbose_name_plural = _("Цены коннектор")
 
 
-class CommentsChargePoint(models.Model):
+class CommentsChargePoint(TimeStampedModel):
     created_at = models.DateTimeField(_("Время"), editable=False)
     charger_point = models.ForeignKey(ChargePoint, verbose_name=_("Станция"), on_delete=models.PROTECT)
     user = models.ForeignKey(User, verbose_name=_("Пользователь"), on_delete=models.PROTECT)
@@ -299,7 +335,7 @@ class CommentsChargePoint(models.Model):
         return self.content
 
 
-class FavoriteChargePoint(models.Model):
+class FavoriteChargePoint(TimeStampedModel):
     charger_point = models.ForeignKey(
         ChargePoint, verbose_name=_("Станция"), related_name="user_favorites", on_delete=models.PROTECT
     )
@@ -316,9 +352,9 @@ class FavoriteChargePoint(models.Model):
         return self.charger_point.model
 
 
-class FavoriteAddress(models.Model):
+class FavoriteAddress(TimeStampedModel):
     address = models.ForeignKey(
-        Address, verbose_name=_("Адрес"), related_name="user_favorites", on_delete=models.PROTECT
+        Location, verbose_name=_("Адрес"), related_name="user_favorites", on_delete=models.PROTECT
     )
     user = models.ForeignKey(
         User, verbose_name=_("Пользователь"), on_delete=models.PROTECT, related_name="user_favorites_address"
@@ -333,7 +369,7 @@ class FavoriteAddress(models.Model):
         return self.address.name
 
 
-class ChargePointTask(models.Model):
+class ChargePointTask(TimeStampedModel):
     TASK_TYPES = (
         ("ReserveNow", "ReserveNow"),
         ("CancelReservation", "CancelReservation"),

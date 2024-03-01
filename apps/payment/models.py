@@ -1,5 +1,3 @@
-from django.db import models
-from django.utils.translation import gettext as _
 from apps.accounts.models import User
 
 from django.db import models
@@ -7,6 +5,7 @@ from django.utils.translation import gettext_lazy as _
 from payments.models import BasePayment
 
 from apps.accounts.models import User
+from apps.core.models import TimeStampedModel
 
 
 class Transaction(BasePayment):
@@ -18,11 +17,11 @@ class Transaction(BasePayment):
     class Meta(BasePayment.Meta):
         unique_together = ("variant", "transaction_id")
 
-    def save(self, *args, **kwargs):
+    def save(self, **kwargs):
         # If transaction_id is not provided, set it to the id field"
         if not self.transaction_id or self.transaction_id == "" or self.transaction_id == "None":
             self.transaction_id = str(self.id)
-        super().save(*args, **kwargs)
+        super().save(**kwargs)
 
 
 class Provider(models.TextChoices):
@@ -31,14 +30,6 @@ class Provider(models.TextChoices):
     PAYLOV = "paylov", _("Paylov")
     UZUM_BANK = "uzum_bank", _("Uzum Bank")
     CARD = "card", _("Card")
-
-
-class TimeStampedModel(models.Model):
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created at"))
-    updated_at = models.DateTimeField(auto_now=True, verbose_name=_("Updated at"))
-
-    class Meta:
-        abstract = True
 
 
 class PaymentMerchantRequestLog(TimeStampedModel):

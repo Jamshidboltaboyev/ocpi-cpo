@@ -1,14 +1,14 @@
 import httpx
 from fastapi import APIRouter, Request, WebSocket, Depends
 
-from py_ocpi.core.adapter import Adapter
-from py_ocpi.core.crud import Crud
-from py_ocpi.core.schemas import Push, PushResponse, ReceiverResponse
-from py_ocpi.core.utils import encode_string_base64, get_auth_token
-from py_ocpi.core.dependencies import get_crud, get_adapter
-from py_ocpi.core.enums import ModuleID, RoleEnum
-from py_ocpi.core.config import settings
-from py_ocpi.modules.versions.enums import InterfaceRole, VersionNumber
+from ocpi.v2_2_1.core.adapter import Adapter
+from ocpi.v2_2_1.core.crud import Crud
+from ocpi.v2_2_1.core.schemas import Push, PushResponse, ReceiverResponse
+from ocpi.v2_2_1.core.utils import encode_string_base64, get_auth_token
+from ocpi.v2_2_1.core.dependencies import get_crud, get_adapter
+from ocpi.v2_2_1.core.enums import ModuleID, RoleEnum
+from ocpi.v2_2_1.core.config import settings
+from ocpi.v2_2_1.modules.versions.enums import InterfaceRole, VersionNumber
 
 
 def client_url(module_id: ModuleID, object_id: str, base_url: str) -> str:

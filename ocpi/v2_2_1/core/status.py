@@ -3,7 +3,7 @@ OCPI status codes based on https://github.com/ocpi/ocpi/blob/2.2.1/status_codes.
 """
 
 # 1xxx: Success
-OCPI_1000_GENERIC_SUCESS_CODE = {
+OCPI_1000_GENERIC_SUCCESS_CODE = {
     'status_code': 1000,
     'status_message': 'Generic success code'
 }

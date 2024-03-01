@@ -7,7 +7,7 @@ import sentry_sdk
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# READING ENV
+
 env = environ.Env()
 env.read_env(os.path.join(BASE_DIR, ".env"))
 
@@ -19,30 +19,38 @@ ALLOWED_HOSTS = ['*']
 
 CSRF_TRUSTED_ORIGINS = ["https://ebb.uicgroup.tech", "https://ebb.uicgroup.tech"]
 
-INSTALLED_APPS = [
-                     'django.contrib.admin',
-                     'django.contrib.auth',
-                     'django.contrib.contenttypes',
-                     'django.contrib.sessions',
-                     'django.contrib.messages',
-                     'django.contrib.staticfiles',
-                 ] + [
-                     "apps.vehicle",
-                     "apps.accounts",
-                     "apps.payment",
-                     "apps.charge_point",
-                     "apps.core"
-                 ] + [
-                     "jazzmin",
-                     "modeltranslation",
-                     "drf_yasg",
-                     "sorl.thumbnail",
-                     "rest_framework",
-                     'rest_framework_simplejwt',
-                     'phonenumber_field',
-                     'django_celery_beat',
-                     "django_celery_results"
-                 ]
+INSTALLED_APPS = (
+        [
+            'django.contrib.admin',
+            'django.contrib.auth',
+            'django.contrib.contenttypes',
+            'django.contrib.sessions',
+            'django.contrib.messages',
+            'django.contrib.staticfiles',
+
+        ]
+        +
+        [
+            "apps.vehicle",
+            "apps.accounts",
+            "apps.payment",
+            "apps.charge_point",
+            "apps.core",
+            "apps.tariff",
+        ]
+        +
+        [
+            "jazzmin",
+            "modeltranslation",
+            "drf_yasg",
+            "sorl.thumbnail",
+            "rest_framework",
+            'rest_framework_simplejwt',
+            'phonenumber_field',
+            'django_celery_beat',
+            "django_celery_results"
+        ]
+)
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -72,7 +80,6 @@ TEMPLATES = [
     },
 ]
 
-
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(days=15),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=15),
@@ -100,7 +107,6 @@ SIMPLE_JWT = {
     "SLIDING_TOKEN_REFRESH_LIFETIME": timedelta(days=15),
 }
 
-
 LANGUAGE_CODE = "en-en"
 
 LANGUAGES = [
@@ -109,9 +115,7 @@ LANGUAGES = [
     ("uz", "Uzbek"),
 ]
 
-
 MODELTRANSLATION_DEFAULT_LANGUAGE = "ru"
-
 
 WSGI_APPLICATION = 'config.wsgi.application'
 ASGI_APPLICATION = 'config.asgi.application'
@@ -166,7 +170,6 @@ REST_FRAMEWORK = {
     "PAGE_SIZE": 12,
 }
 
-
 AUTH_PASSWORD_VALIDATORS = [
     {
         'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
@@ -184,7 +187,6 @@ AUTH_PASSWORD_VALIDATORS = [
 
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
-
 PUSH_NOTIFICATIONS_SETTINGS = {
     "USER_MODEL": "apps.accounts.User",
     "FCM_API_KEY": "AAAAZWIWVj8:APA91bF-JuDqk_g72mPfL4x93JG_-5SI2-Bwg82yCNgMisgGPA9Gkdtl5WN_iSqPPnr1EMKhNeUA_eXfQ3m_JOWOLxXA-63TrJ3ZGLjxuyJL2AKqHAOByjrulOQ490hGBs9A5ziDFLUs",
@@ -194,7 +196,6 @@ TIME_ZONE = "Asia/Tashkent"
 
 USE_I18N = True
 USE_TZ = True
-
 
 STATIC_ROOT = os.path.join(BASE_DIR, "static")
 STATIC_URL = "/static/"

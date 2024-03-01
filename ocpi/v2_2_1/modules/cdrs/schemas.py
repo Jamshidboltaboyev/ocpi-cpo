@@ -1,13 +1,13 @@
 from typing import List, Optional
 
 from pydantic import BaseModel
-from py_ocpi.modules.cdrs.v_2_2_1.enums import AuthMethod, CdrDimensionType
+from ocpi.v2_2_1.modules.cdrs.enums import AuthMethod, CdrDimensionType
 
-from py_ocpi.core.data_types import CiString, Number, Price, String, DateTime
-from py_ocpi.modules.tokens.v_2_2_1.enums import TokenType
-from py_ocpi.modules.tariffs.v_2_2_1.schemas import Tariff
-from py_ocpi.modules.locations.v_2_2_1.schemas import GeoLocation
-from py_ocpi.modules.locations.v_2_2_1.enums import ConnectorFormat, ConnectorType, PowerType
+from ocpi.v2_2_1.core.data_types import CiString, Number, Price, String, DateTime
+from ocpi.v2_2_1.modules.tokens.v_2_2_1.enums import TokenType
+from ocpi.v2_2_1.modules.tariffs.v_2_2_1.schemas import Tariff
+from ocpi.v2_2_1.modules.locations.v_2_2_1.schemas import GeoLocation
+from ocpi.v2_2_1.modules.locations.v_2_2_1.enums import ConnectorFormat, ConnectorType, PowerType
 
 
 class SignedValue(BaseModel):

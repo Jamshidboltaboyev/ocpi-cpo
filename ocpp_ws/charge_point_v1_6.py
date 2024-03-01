@@ -6,7 +6,7 @@ import aiohttp
 from channels.db import database_sync_to_async
 from django.utils import timezone
 from ocpp.routing import on
-from ocpp.v16 import ChargePoint as cp
+from ocpp.v16 import ChargePoint as ChargePoint_V_1_6
 from ocpp.v16 import call
 from ocpp.v16.datatypes import IdTagInfo
 from ocpp.v16.enums import *
@@ -30,7 +30,7 @@ async def send_msg_cp_log(message):
             await response.json()
 
 
-class ChargePoint(cp):
+class ChargePoint(ChargePoint_V_1_6):
 
     async def route_message(self, raw_msg):
         await send_msg_cp_log(f"{self.id}\n{raw_msg}")
@@ -133,7 +133,7 @@ class ChargePoint(cp):
         )
 
     @on(action=Action.StopTransaction)
-    async def on_stop_transaction(self, meter_stop, timestamp, transaction_id, **kwargs):
+    async def on_stop_transaction(self, meter_stop, timestamp, transaction_id):
         ipt = await models.InProgressTransaction.objects.filter(pk=transaction_id, end=False).select_related(
             'connector', 'connector__price_for_charge', 'user'
         ).afirst()

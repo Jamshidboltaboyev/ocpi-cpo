@@ -4,19 +4,19 @@ from fastapi import FastAPI
 
 from fastapi.middleware.cors import CORSMiddleware
 
-from ocpi.core.endpoints import ENDPOINTS
-from ocpi.middlewares import ExceptionHandlerMiddleware
+from ocpi.v2_2_1.core.endpoints import ENDPOINTS
+from ocpi.v2_2_1.middlewares import ExceptionHandlerMiddleware
 
-from ocpi.modules.versions.api import router as versions_router, versions_v_2_2_1_router
-from ocpi.modules.versions.enums import VersionNumber
-from ocpi.modules.versions.schemas import Version
-from ocpi.core.dependencies import get_crud, get_adapter, get_versions, get_endpoints
-from ocpi.core.enums import RoleEnum
-from ocpi.core.config import settings
-from ocpi.core.data_types import URL
+from ocpi.v2_2_1.modules.versions.api import router as versions_router, versions_v_2_2_1_router
+from ocpi.v2_2_1.modules.versions.enums import VersionNumber
+from ocpi.v2_2_1.modules.versions.schemas import Version
+from ocpi.v2_2_1.core.dependencies import get_crud, get_adapter, get_versions, get_endpoints
+from ocpi.v2_2_1.core.enums import RoleEnum
+from ocpi.v2_2_1.core.config import settings
+from ocpi.v2_2_1.core.data_types import URL
 
-from ocpi.core.push import http_router as http_push_router, websocket_router as websocket_push_router
-from ocpi.routers import v_2_2_1_cpo_router, v_2_2_1_emsp_router
+from ocpi.v2_2_1.core.push import http_router as http_push_router, websocket_router as websocket_push_router
+from ocpi.v2_2_1.routers import v_2_2_1_cpo_router, v_2_2_1_emsp_router
 
 
 def get_application(

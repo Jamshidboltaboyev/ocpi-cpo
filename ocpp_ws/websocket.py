@@ -1,52 +1,48 @@
-import asyncio
-import os
-import websockets
-from django.core.asgi import get_asgi_application
+from starlette.websockets import WebSocket, WebSocketDisconnect
 
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "zty.settings")
-get_asgi_application()
-
-from utilss import CommandParser, PubSub
-from charge_point import ChargePoint
+from ocpp_ws.charge_point_v1_6 import ChargePoint
 
 active_connection = {}
 
+from fastapi import APIRouter
 
-class OcppWebSocketServerProtocol:
-    async def on_connect(self, websocket, path: str):
-        global active_connection
-        connection_id = path.split('/')[-1]
-        cp = ChargePoint(connection_id, websocket)
-        active_connection[connection_id] = cp
-        await cp.start()
+router = APIRouter()
 
-    async def subscribe_to_pubsub(self):
+
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: list[WebSocket] = []
+
+    async def connect(self, websocket: WebSocket, charge_point_identify: str):
         global active_connection
-        channel_name = 'events'
+        await websocket.accept(subprotocol='ocpp1.6')
+
+        ch_p = ChargePoint(charge_point_identify, websocket)
+        await ch_p.start()
+        active_connection[charge_point_identify] = ch_p
+
+    def disconnect(self, websocket: WebSocket):
+
+
+    async def send_personal_message(self, message: str, websocket: WebSocket):
+        await websocket.send_text(message)
+
+    async def broadcast(self, message: str):
+        for connection in self.active_connections:
+            await connection.send_text(message)
+
+
+manager = ConnectionManager()
+
+
+@router.websocket_route("ws/{charge_point_identify}")
+async def websocket_endpoint(websocket: WebSocket, charge_point_identify: str):
+    await manager.connect(websocket, charge_point_identify)
+    try:
         while True:
-            try:
-                value = await PubSub().subscribe(channel_name)
-                command: CommandParser = CommandParser.parse_raw(value)
-
-                if command.charge_point_id not in active_connection:
-                    continue
-                cp: ChargePoint = active_connection[command.charge_point_id]
-                mapping = {
-                    "RemoteStartTransaction": cp.send_remote_start_transaction_command,
-                    "RemoteStopTransaction": cp.send_remote_stop_transaction_command
-                }
-                await mapping[command.command](**command.kwargs)
-            except Exception as e:
-                pass
-
-    async def start_server(self):
-        port = 49000
-        print("running on: ", port)
-        server = await websockets.serve(self.on_connect, host='0.0.0.0', port=port, subprotocols=['ocpp1.6'])
-        await server.wait_closed()
-
-    async def start(self):
-        await asyncio.gather(self.start_server(), self.subscribe_to_pubsub())
-
-
-asyncio.run(OcppWebSocketServerProtocol().start())
+            data = await websocket.receive_text()
+            await manager.send_personal_message(f"You wrote: {data}", websocket)
+            await manager.broadcast(f"Client #{client_id} says: {data}")
+    except WebSocketDisconnect:
+        manager.disconnect(websocket)
+        await manager.broadcast(f"Client #{client_id} left the chat")

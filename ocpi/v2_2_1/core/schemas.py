@@ -3,8 +3,8 @@ from typing import List, Union
 
 from pydantic import BaseModel
 
-from py_ocpi.core.data_types import String, DateTime, URL
-from py_ocpi.core.enums import ModuleID
+from ocpi.v2_2_1.core.data_types import String, DateTime, URL
+from ocpi.v2_2_1.core.enums import ModuleID
 
 
 class OCPIResponse(BaseModel):

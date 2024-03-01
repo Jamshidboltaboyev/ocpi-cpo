@@ -1,6 +1,6 @@
 from typing import Any, Tuple
 
-from py_ocpi.core.enums import ModuleID, RoleEnum, Action
+from ocpi.v2_2_1.core.enums import ModuleID, RoleEnum, Action
 
 
 class Crud:

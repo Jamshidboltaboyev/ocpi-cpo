@@ -10,12 +10,8 @@ from .schema import swagger_urlpatterns
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/v1/account/', include('apps.accounts.urls', namespace='accounts')),
-    path('api/v1/core/', include('apps.core.urls', namespace='core')),
-    # path('api/v1/payments/', include('uicpayment.urls')),
 
-    # path('apiadmin/', api_admin.site.urls),
-    # path('.well-known/apple-app-site-association', apple_app_site_association)
+    path("cpo/2.2.1/locations/", include('apps.locations.urls'))
 ]
 
 urlpatterns += swagger_urlpatterns

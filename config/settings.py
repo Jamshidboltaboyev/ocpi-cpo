@@ -7,7 +7,6 @@ import sentry_sdk
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
 env = environ.Env()
 env.read_env(os.path.join(BASE_DIR, ".env"))
 
@@ -31,12 +30,15 @@ INSTALLED_APPS = (
         ]
         +
         [
-            "apps.vehicle",
-            "apps.accounts",
-            "apps.payment",
-            "apps.charge_point",
             "apps.core",
-            "apps.tariff",
+            "apps.versions",
+            "apps.cdrs",
+            "apps.commands",
+            "apps.credentials",
+            "apps.locations",
+            "apps.sessionss",
+            "apps.tariffs",
+            "apps.tokens"
         ]
         +
         [
@@ -60,6 +62,8 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+
+    "apps.core.middleware.OCPIResponseMiddleware"
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -120,32 +124,6 @@ MODELTRANSLATION_DEFAULT_LANGUAGE = "ru"
 WSGI_APPLICATION = 'config.wsgi.application'
 ASGI_APPLICATION = 'config.asgi.application'
 
-PAYMENT_HOST = "zty.projects.uz"
-PAYMENT_USES_SSL = True  # set the True value if you are using the SSL
-PAYMENT_MODEL = "uicpayment.Transaction"
-PAYMENT_VARIANTS = {
-    "click": (
-        "uicpayment.providers.ClickProvider",
-        {"merchant_id": 22413, "merchant_service_id": 29967, "merchant_user_id": 35759, "secret_key": "OqteAcB2TN"},
-    )
-}
-
-PROVIDERS = {
-    "paylov": {
-        "callback_url": "https://my.paylov.uz/checkout/create",
-        "merchant_id": "d377c20f-56c4-4603-8566-18a3c24f7d54",
-        "api_key": "DXBvBXEH.kwyH0wUu9uF9MEawaWUULE9ohuc5ZkeM",
-        "username": "Paylov",
-        "password": "[$kF[ggIHSmu2k#t,Yj2.blTs7dSSGeo",
-    },
-    "payme": {
-        "callback_url": "https://checkout.paycom.uz",
-        "merchant_id": "64fee17236ef51a083e4567c",
-        "secret_key": "IWNyJdISwD76UfSmWrD@hpKseQsVI1ghh6?x",
-        "test_secret_key": "GxhVJbuMQkrMBeX@HMoP7nI%uT8kMnpC3sIK",
-    },
-}
-
 DATABASES = {
     "default": {
         "ENGINE": env.str("DB_ENGINE"),
@@ -162,10 +140,9 @@ REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework_simplejwt.authentication.JWTAuthentication",
         "rest_framework.authentication.TokenAuthentication",
-        "rest_framework.authentication.SessionAuthentication",
-        # 'django.contrib.auth.backends.ModelBackend',
+        "rest_framework.authentication.SessionAuthentication"
     ),
-    "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticated"],
+    "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.AllowAny"],
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.LimitOffsetPagination",
     "PAGE_SIZE": 12,
 }
@@ -186,11 +163,6 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
-
-PUSH_NOTIFICATIONS_SETTINGS = {
-    "USER_MODEL": "apps.accounts.User",
-    "FCM_API_KEY": "AAAAZWIWVj8:APA91bF-JuDqk_g72mPfL4x93JG_-5SI2-Bwg82yCNgMisgGPA9Gkdtl5WN_iSqPPnr1EMKhNeUA_eXfQ3m_JOWOLxXA-63TrJ3ZGLjxuyJL2AKqHAOByjrulOQ490hGBs9A5ziDFLUs",
-}
 
 TIME_ZONE = "Asia/Tashkent"
 
@@ -213,36 +185,4 @@ CACHES = {
     }
 }
 
-# CELERY CONFIGURATION
-CELERY_BROKER_URL = env.str("CELERY_BROKER_URL", "redis://localhost:6379")
-CELERY_RESULT_BACKEND = env.str("CELERY_BROKER_URL", "redis://localhost:6379")
-
-CELERY_TIMEZONE = "Asia/Tashkent"
-
-CELERY_TASK_TRACK_STARTED = True
-CELERY_TASK_TIME_LIMIT = 30 * 60
-
-CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
-CELERY_BEAT_SCHEDULE = {
-    "daily-user-gift-check": {
-        "task": "accounts.tasks.daily_user_gift_check",
-    },
-    "daily-transaction-report": {
-        "task": "apps.charge_point.tasks.daily_transaction_report",
-    },
-    "daily-transaction-report-charge-point": {
-        "task": "apps.charge_point.tasks.daily_transaction_report_charge_point",
-    },
-    "history-transaction-report": {
-        "task": "apps.charge_point.tasks.history_transaction_report_charge_point",
-    },
-}
-
-ONE_SIGNAL_APP_ID = "16b4f3a9-69cb-4fad-8cce-c71fb2c15b83"
-ONE_SIGNAL_REST_API_KEY = "ZDY5OGEzYzYtMzZiMC00OGZjLWEzMGQtZDA5MDMzZjhiN2Fm"
-
-sentry_sdk.init(
-    dsn="https://d4ed84678280c48f78b02d06a096c394@o713327.ingest.sentry.io/4506081013071872",
-    traces_sample_rate=1.0,
-    profiles_sample_rate=1.0,
-)
+CPO_PARTY_ID = "EBB"

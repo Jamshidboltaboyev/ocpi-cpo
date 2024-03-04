@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from apps.core.models import Country, Region, District
+from apps.core.models import Country, Region, District, Image
 
 
 @admin.register(Country)
@@ -17,3 +17,7 @@ class RegionAdmin(admin.ModelAdmin):
 class DistrictAdmin(admin.ModelAdmin):
     list_display = ("name",)
 
+
+@admin.register(Image)
+class ImageAdmin(admin.ModelAdmin):
+    list_display = ['url']

@@ -1,6 +1,6 @@
 from django.db import models
-from django.utils import timezone
 from django.utils.translation import gettext as _
+
 from apps.core.models import TimeStampedModel, District
 
 

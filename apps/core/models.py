@@ -65,3 +65,11 @@ class Image(TimeStampedModel):
     type = models.CharField(max_length=4, verbose_name=_("Image Extension"))
     width = models.PositiveSmallIntegerField(null=True, blank=True, verbose_name=_("Width"))
     height = models.PositiveSmallIntegerField(null=True, blank=True, verbose_name=_("Height"))
+
+    def __str__(self):
+        return self.url
+
+    class Meta:
+        verbose_name = _("Image")
+        verbose_name_plural = _("Images")
+        ordering = ('-created_at',)

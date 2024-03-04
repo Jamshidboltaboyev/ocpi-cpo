@@ -16,7 +16,8 @@ urlpatterns = [
 
 
 
-    path("cpo/2.2.1/locations/", include('apps.locations.urls'))
+    path("cpo/2.2.1/locations/", include('apps.locations.urls')),
+    path("cpo/2.2.1/credentials/", include('apps.credentials.urls'))
 ]
 
 urlpatterns += swagger_urlpatterns

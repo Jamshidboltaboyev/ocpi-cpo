@@ -168,18 +168,3 @@ class Connector(TimeStampedModel):
 
     def __str__(self):
         return f"{self.charge_point}: № {self.connector_id}"
-
-
-class ChargePointError(TimeStampedModel):
-    connector_id = models.ForeignKey(
-        Connector, verbose_name=_("Коннектор"), on_delete=models.PROTECT, related_name="errors"
-    )
-    error_code = models.CharField(_("Код ошибки"), max_length=50, null=True)
-    info = models.CharField(_("Info"), max_length=50, null=True)
-    status = models.CharField(_("Status"), max_length=50, null=True)
-    timestamp = models.DateTimeField(_("Время"))
-    vendor_id = models.CharField(_("Вендор"), max_length=255, null=True)
-    vendor_error_code = models.CharField(_("Код ошибки вендора"), max_length=50, null=True, blank=True)
-
-
-

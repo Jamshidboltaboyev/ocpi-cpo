@@ -1,3 +1,4 @@
+from drf_yasg.utils import swagger_auto_schema
 from rest_framework import status
 from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
@@ -7,6 +8,7 @@ from apps.locations.serializers import LocationSerializer, ChargePointSerializer
 
 
 class LocationListAPIView(APIView):
+    @swagger_auto_schema(tags=["Locations module"])
     def get(self, request, *args, **kwargs):
         queryset = self.get_queryset()
 
@@ -20,6 +22,7 @@ class LocationListAPIView(APIView):
 
 
 class LocationDetailAPIView(APIView):
+    @swagger_auto_schema(tags=["Locations module"])
     def get(self, request, *args, **kwargs):
         instance = self.get_object(kwargs.get('location_id'))
 
@@ -32,6 +35,7 @@ class LocationDetailAPIView(APIView):
 
 
 class ChargePointDetailAPIView(APIView):
+    @swagger_auto_schema(tags=["Locations module"])
     def get(self, request, *args, **kwargs):
         instance = self.get_object(kwargs.get('location_id'), kwargs.get('evse_uid'))
 
@@ -44,6 +48,7 @@ class ChargePointDetailAPIView(APIView):
 
 
 class ConnectorDetailAPIView(APIView):
+    @swagger_auto_schema(tags=["Locations module"])
     def get(self, request, *args, **kwargs):
         instance = self.get_object(kwargs.get('location_id'), kwargs.get('evse_uid'), kwargs.get('connector_id'))
 

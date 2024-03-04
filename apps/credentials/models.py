@@ -1,3 +1,32 @@
+from apps.core.models import TimeStampedModel, Image
 from django.db import models
+from django.utils.translation import gettext as _
 
-# Create your models here.
+
+class Credentials(TimeStampedModel):
+    token = models.CharField(max_length=64)
+    url = models.URLField(max_length=255)
+
+
+class BusinessDetails(TimeStampedModel):
+    name = models.CharField(max_length=100, verbose_name=_("Name"))
+    website = models.URLField(max_length=255, verbose_name=_("Website"))
+    logo = models.ForeignKey(to=Image, on_delete=models.SET_NULL, null=True, blank=True, verbose_name=_("Logo"))
+
+
+class CredentialsRole(TimeStampedModel):
+    class Roles(models.TextChoices):
+        CPO = 'CPO'  # Charge Point Operator Role
+        EMSP = 'EMSP'  # eMobility Service Provider Role
+        HUB = 'HUB'  # Hub role
+        NAP = 'NAP'  # National Access Point Role (national Database with all Location information of a country)
+        NSP = 'NSP'  # Navigation Service Provider Role, role like an eMSP (probably only interested in Location
+        # information
+        OTHER = 'OTHER'  # Other role
+        SCSP = 'SCSP'  # Smart Charging Service Provider Role
+
+    credentials = models.ForeignKey(to=Credentials, on_delete=models.PROTECT)
+    role = models.CharField(max_length=10, choices=Roles.choices, verbose_name=_("Role"))
+    business_details = models.ForeignKey(to=BusinessDetails, on_delete=models.PROTECT)
+    party_id = models.CharField(max_length=3, verbose_name=_("Party id"))
+    country_code = models.CharField(max_length=2, verbose_name=_("Country code"))

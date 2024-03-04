@@ -33,7 +33,6 @@ INSTALLED_APPS = (
             "apps.core",
             "apps.versions",
             "apps.cdrs",
-            "apps.commands",
             "apps.credentials",
             "apps.locations",
             "apps.sessionss",

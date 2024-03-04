@@ -48,3 +48,20 @@ class District(TimeStampedModel):
         verbose_name = _("District")
         verbose_name_plural = _("District")
 
+
+class Image(TimeStampedModel):
+    class Category(models.TextChoices):
+        CHARGER = "CHARGER"
+        ENTRANCE = "ENTRANCE"
+        LOCATION = "LOCATION"
+        NETWORK = "NETWORK"
+        OPERATOR = "OPERATOR"
+        OTHER = "OTHER"
+        OWNER = "OWNER"
+
+    url = models.URLField(max_length=255, verbose_name=_("Url"))
+    thumbnail = models.URLField(max_length=255, verbose_name=_("Thumbnail"), null=True, blank=True)
+    category = models.CharField(max_length=20, choices=Category.choices, verbose_name=_("Category"))
+    type = models.CharField(max_length=4, verbose_name=_("Image Extension"))
+    width = models.PositiveSmallIntegerField(null=True, blank=True, verbose_name=_("Width"))
+    height = models.PositiveSmallIntegerField(null=True, blank=True, verbose_name=_("Height"))

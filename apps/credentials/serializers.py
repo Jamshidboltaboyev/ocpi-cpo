@@ -21,12 +21,8 @@ class CredentialsRoleSerializer(serializers.ModelSerializer):
 
 
 class CredentialsSerializer(serializers.ModelSerializer):
-    roles = serializers.SerializerMethodField(method_name='get_roles')
+    roles = CredentialsRoleSerializer(many=True)
 
     class Meta:
         model = Credentials
         fields = ("token", "url", "roles")
-
-    def get_roles(self, obj: Credentials):
-        qs = CredentialsRole.objects.filter(credentials_id=obj.id)
-        return CredentialsRoleSerializer(qs, many=True).data

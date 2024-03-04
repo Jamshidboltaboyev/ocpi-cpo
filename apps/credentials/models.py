@@ -41,7 +41,7 @@ class CredentialsRole(TimeStampedModel):
         OTHER = 'OTHER'  # Other role
         SCSP = 'SCSP'  # Smart Charging Service Provider Role
 
-    credentials = models.ForeignKey(to=Credentials, on_delete=models.PROTECT)
+    credentials = models.ForeignKey(to=Credentials, on_delete=models.PROTECT, related_name='roles')
     role = models.CharField(max_length=10, choices=Roles.choices, verbose_name=_("Role"))
     business_details = models.ForeignKey(to=BusinessDetails, on_delete=models.PROTECT)
     party_id = models.CharField(max_length=3, verbose_name=_("Party id"))

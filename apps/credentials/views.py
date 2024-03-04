@@ -17,7 +17,7 @@ class CredentialsAPIView(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def get_queryset(self):
-        qs = Credentials.objects.all()
+        qs = Credentials.objects.prefetch_related('roles', 'roles__business_details', "roles__business_details__logo")
         return qs
 
     @swagger_auto_schema(tags=["Credentials module"])
@@ -53,5 +53,7 @@ class CredentialsAPIView(APIView):
             )
 
         return
-    def get_object(self):
-        return self.request
+
+
+
+

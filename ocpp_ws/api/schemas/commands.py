@@ -1,14 +1,19 @@
-from typing import List, Optional
+from datetime import datetime, timezone
+from typing import List, Optional, Union
+
+from py_ocpi.modules.commands.v_2_2_1.enums import CommandResponseType, CommandResultType
 from pydantic import BaseModel
 
-from py_ocpi.core.data_types import CiString, URL, DisplayText, DateTime
-from py_ocpi.modules.commands.v_2_2_1.enums import CommandResponseType, CommandResultType
+from py_ocpi.core.data_types import CiString, URL, DateTime, DisplayText
+
 from py_ocpi.modules.tokens.v_2_2_1.schemas import Token
+
+
 
 
 class CancelReservation(BaseModel):
     response_url: URL
-    reservation_id: CiString(36)
+    reservation_id: str
 
 
 class CommandResponse(BaseModel):
@@ -26,19 +31,19 @@ class ReserveNow(BaseModel):
     response_url: URL
     token: Token
     expiry_date: DateTime
-    reservation_id: CiString(36)
-    location_id: CiString(36)
-    evse_uid: Optional[CiString(36)]
-    authorization_reference: Optional[CiString(36)]
+    reservation_id: str
+    location_id: str
+    evse_uid: str
+    authorization_reference: str
 
 
 class StartSession(BaseModel):
-    response_url: URL
+    response_url: str
     token: Token
-    location_id: CiString(36)
-    evse_uid: Optional[CiString(36)]
-    connector_id: Optional[CiString(36)]
-    authorization_reference: Optional[CiString(36)]
+    location_id: str
+    evse_uid: Optional[str]
+    connector_id: Optional[str]
+    authorization_reference: Optional[str]
 
 
 class StopSession(BaseModel):

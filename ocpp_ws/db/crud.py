@@ -1,10 +1,11 @@
 from datetime import datetime
 
-from ocpp_ws.db.models import ChargePoint
+
 from sqlalchemy.future import select
 from sqlalchemy import update
 
-from ocpp_ws.db.session import async_session
+from ocpp_ws.api.models.locations import ChargePoint
+from ocpp_ws.app.dependencies import async_session
 
 
 async def get_charge_point(charge_point_identify):
@@ -48,5 +49,3 @@ async def update_charge_point_on_connect(charge_point_identity):
             )
 
 
-async def update_charge_point_on_heartbeat(charge_point_identity):
-    pass

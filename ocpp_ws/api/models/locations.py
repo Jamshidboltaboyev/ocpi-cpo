@@ -6,11 +6,6 @@ import enum
 Base = declarative_base()
 
 
-class TimeStampedModel:
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
-
 class Status(enum.Enum):
     AVAILABLE = 'AVAILABLE'
     BLOCKED = "BLOCKED"
@@ -23,8 +18,11 @@ class Status(enum.Enum):
     UNKNOWN = "UNKNOWN"
 
 
-class ChargePoint(Base, TimeStampedModel):
+class ChargePoint(Base):
+
     __tablename__ = 'locations_chargepoint'
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     id = Column(Integer, primary_key=True)
     location_id = Column(Integer, ForeignKey('location.id'))
@@ -38,8 +36,3 @@ class ChargePoint(Base, TimeStampedModel):
     is_connected = Column(Boolean, default=False)
     is_active = Column(Boolean, default=True)
     status = Column(Enum(Status))
-
-    # Assuming Location is defined elsewhere
-    # location = relationship("Location", back_populates="charge_points")
-
-# gimme crud examples

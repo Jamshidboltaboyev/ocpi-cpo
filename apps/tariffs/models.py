@@ -1,3 +1,6 @@
 from django.db import models
+from apps.core.models import TimeStampedModel
 
-# Create your models here.
+
+class Tariff(TimeStampedModel):
+    pass

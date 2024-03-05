@@ -3,16 +3,13 @@ from __future__ import annotations
 from datetime import datetime
 
 from ocpp.routing import on
-from ocpp.v16 import ChargePoint as ChargePoint_V_1_6, call_result
+from ocpp.v16 import ChargePoint as ChargePoint_V_1_6
 from ocpp.v16 import call
 from ocpp.v16.enums import *
 from sqlalchemy import update
 
-from ocpp_ws.app.dependencies import async_session
-from ocpp_ws.db.crud import (
-    update_charge_point_on_boot_notification
-)
 from ocpp_ws.api.models.locations import ChargePoint as ChargePointModel
+from ocpp_ws.app.dependencies import async_session
 
 
 class ChargePoint(ChargePoint_V_1_6):
@@ -23,7 +20,14 @@ class ChargePoint(ChargePoint_V_1_6):
 
     @on(action=Action.BootNotification)
     async def on_boot_notification(self, **kwargs):
-        await update_charge_point_on_boot_notification(self.id)
+        async with async_session() as session:
+            current_time = datetime.utcnow()
+            async with session.begin():
+                await session.execute(
+                    update(ChargePoint).
+                    where(ChargePointModel.identity == self.id).
+                    values(last_heartbeat=current_time, is_connected=True)
+                )
 
         return self._call_result.BootNotificationPayload(
             current_time=datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S+05:00'),

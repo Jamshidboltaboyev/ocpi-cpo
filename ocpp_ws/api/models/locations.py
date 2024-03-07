@@ -6,21 +6,33 @@ import enum
 Base = declarative_base()
 
 
-class Status(enum.Enum):
-    AVAILABLE = 'AVAILABLE'
-    BLOCKED = "BLOCKED"
-    CHARGING = 'CHARGING'
-    INOPERATIVE = 'INOPERATIVE'
-    OUTOFORDER = "OUTOFORDER"
-    PLANNED = "PLANNED"
-    REMOVED = "REMOVED"
-    RESERVED = "RESERVED"
-    UNKNOWN = "UNKNOWN"
+class Location(Base):
+    __tablename__ = 'locations_location'
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    district_id = Column(Integer, ForeignKey('district.id'))
+    id = Column(Integer, primary_key=True)
+
+    # sessions = relationship('Session', back_populates='location')
+    # charge_point = relationship("ChargePoint", back_populates='location')
 
 
 class ChargePoint(Base):
-
     __tablename__ = 'locations_chargepoint'
+
+    class Status(enum.Enum):
+        AVAILABLE = 'AVAILABLE'
+        BLOCKED = "BLOCKED"
+        CHARGING = 'CHARGING'
+        INOPERATIVE = 'INOPERATIVE'
+        OUTOFORDER = "OUTOFORDER"
+        PLANNED = "PLANNED"
+        REMOVED = "REMOVED"
+        RESERVED = "RESERVED"
+        UNKNOWN = "UNKNOWN"
+
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -36,3 +48,5 @@ class ChargePoint(Base):
     is_connected = Column(Boolean, default=False)
     is_active = Column(Boolean, default=True)
     status = Column(Enum(Status))
+
+    # sessions = relationship('Session', back_populates='evse')

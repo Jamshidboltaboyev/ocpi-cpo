@@ -9,11 +9,7 @@ router = APIRouter(prefix="/ocpi/cpo/2.2.1/commands")
 @router.post("/START_SESSION", response_model=OCPIResponse)
 async def command_start_router(request: Request, data: StartSession):
 
-    result: CommandResult = await start_session(
-        location_id=data.location_id,
-        evse_uid=data.location_id,
-        connector_id=int(data.connector_id)
-    )
+    result: CommandResult = await start_session(start_session_data=data)
     return OCPIResponse(
         data=result,
         **OCPI_1000_GENERIC_SUCESS_CODE
@@ -27,4 +23,3 @@ async def command_stop_router(request: Request, data: StopSession):
         data=result,
         **OCPI_1000_GENERIC_SUCESS_CODE
     )
-

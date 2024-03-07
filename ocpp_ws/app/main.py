@@ -6,9 +6,7 @@ from starlette.websockets import WebSocket, WebSocketDisconnect
 
 from ocpp_ws.charge_point_v1_6 import ChargePoint
 from ocpp_ws.api.routers import commands_router
-from ocpp_ws.db.crud import (
-    update_charge_point_on_disconnect
-)
+
 from ocpp_ws.app.dependencies import ACTIVE_CONNECTIONS, async_session
 from ocpp_ws.api.models.locations import ChargePoint as ChargePointModel
 
